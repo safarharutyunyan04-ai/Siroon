@@ -3,18 +3,12 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
-import { IconButton } from "@/components/ui/IconButton";
-import { formatMoney, formatPrice, id, todayIso } from "@/lib/format";
+import { formatMoney, formatPrice, todayIso } from "@/lib/format";
 import { t } from "@/lib/i18n/messages";
 import { useCurrency, useLocale, useMenu } from "@/lib/hooks";
 import { createEvent, updateEvent } from "@/lib/events-store";
 import { getChildCategories, getRootCategories } from "@/lib/menu-store";
-import {
-  emptyDiscount,
-  normalizeDiscount,
-  normalizePriceRules,
-  quoteEvent,
-} from "@/lib/pricing";
+import { emptyDiscount, normalizeDiscount, quoteEvent } from "@/lib/pricing";
 import { roomTone, rooms } from "@/lib/rooms";
 import type {
   Currency,
@@ -23,8 +17,6 @@ import type {
   EventLine,
   Locale,
   MenuItem,
-  PriceRule,
-  PriceRuleKind,
   RoomId,
   VenueEvent,
 } from "@/types/domain";
@@ -59,9 +51,6 @@ export function EventForm({ event }: EventFormProps) {
   const [discount, setDiscount] = useState<EventDiscount>(() =>
     normalizeDiscount(event?.discount),
   );
-  const [priceRules, setPriceRules] = useState<PriceRule[]>(() =>
-    normalizePriceRules(event?.priceRules),
-  );
 
   const selectedLines: EventLine[] = useMemo(
     () =>
@@ -74,11 +63,11 @@ export function EventForm({ event }: EventFormProps) {
   const quote = useMemo(
     () =>
       quoteEvent(
-        { lines: selectedLines, discount, priceRules },
+        { lines: selectedLines, discount, priceRules: [] },
         activeMenu,
         currency,
       ),
-    [activeMenu, currency, discount, priceRules, selectedLines],
+    [activeMenu, currency, discount, selectedLines],
   );
 
   function setQty(itemId: string, quantity: number) {
@@ -101,23 +90,6 @@ export function EventForm({ event }: EventFormProps) {
     );
   }
 
-  function addRule() {
-    setPriceRules((current) => [
-      ...current,
-      { id: id("rule"), label: "", kind: "amount", value: 0 },
-    ]);
-  }
-
-  function updateRule(ruleId: string, patch: Partial<PriceRule>) {
-    setPriceRules((current) =>
-      current.map((rule) => (rule.id === ruleId ? { ...rule, ...patch } : rule)),
-    );
-  }
-
-  function removeRule(ruleId: string) {
-    setPriceRules((current) => current.filter((rule) => rule.id !== ruleId));
-  }
-
   function submit() {
     const payload = {
       title,
@@ -129,7 +101,7 @@ export function EventForm({ event }: EventFormProps) {
       notes,
       lines: selectedLines,
       discount: normalizeDiscount(discount),
-      priceRules: normalizePriceRules(priceRules),
+      priceRules: [],
       status: "confirmed" as const,
     };
     if (event) {
@@ -342,89 +314,6 @@ export function EventForm({ event }: EventFormProps) {
             </label>
           ) : null}
         </section>
-
-        <section className="mt-10 sm:mt-12">
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <h2 className="font-display text-xl font-medium sm:text-2xl">
-                {t(locale, "priceRules")}
-              </h2>
-              <p className="mt-2 max-w-lg text-sm text-muted">
-                {t(locale, "priceRulesHint")}
-              </p>
-            </div>
-            <Button type="button" variant="secondary" onClick={addRule}>
-              {t(locale, "addPriceRule")}
-            </Button>
-          </div>
-
-          {priceRules.length === 0 ? (
-            <p className="mt-6 text-sm text-muted">{t(locale, "priceRulesHint")}</p>
-          ) : (
-            <ul className="mt-6 flex flex-col gap-4">
-              {priceRules.map((rule) => (
-                <li
-                  key={rule.id}
-                  className="grid gap-3 border-t border-border pt-4 sm:grid-cols-[1fr_7rem_7rem_auto]"
-                >
-                  <label className="flex flex-col gap-2">
-                    <span className="label">{t(locale, "ruleLabel")}</span>
-                    <input
-                      value={rule.label}
-                      onChange={(change) =>
-                        updateRule(rule.id, { label: change.target.value })
-                      }
-                      placeholder={t(locale, "ruleLabel")}
-                      className="border-b border-border bg-transparent py-2 text-sm outline-none focus:border-foreground"
-                    />
-                  </label>
-                  <label className="flex flex-col gap-2">
-                    <span className="label">{t(locale, "unit")}</span>
-                    <select
-                      value={rule.kind}
-                      onChange={(change) =>
-                        updateRule(rule.id, {
-                          kind: change.target.value as PriceRuleKind,
-                        })
-                      }
-                      className="border-b border-border bg-transparent py-2 text-sm outline-none focus:border-foreground"
-                    >
-                      <option value="amount">{t(locale, "ruleAmount")}</option>
-                      <option value="percent">{t(locale, "rulePercent")}</option>
-                    </select>
-                  </label>
-                  <label className="flex flex-col gap-2">
-                    <span className="label">
-                      {rule.kind === "percent"
-                        ? t(locale, "rulePercent")
-                        : t(locale, "ruleAmount")}
-                    </span>
-                    <input
-                      type="number"
-                      step={rule.kind === "percent" ? 1 : 1}
-                      value={rule.value || ""}
-                      onChange={(change) =>
-                        updateRule(rule.id, {
-                          value: Number(change.target.value) || 0,
-                        })
-                      }
-                      className="border-b border-border bg-transparent py-2 text-sm tabular-nums outline-none focus:border-foreground"
-                    />
-                  </label>
-                  <div className="flex items-end">
-                    <IconButton
-                      variant="remove"
-                      label={t(locale, "removeRule")}
-                      onClick={() => removeRule(rule.id)}
-                    >
-                      ×
-                    </IconButton>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
       </div>
 
       <aside className="lg:sticky lg:top-32 lg:self-start">
@@ -438,13 +327,6 @@ export function EventForm({ event }: EventFormProps) {
               label={t(locale, "subtotal")}
               value={formatMoney(quote.subtotal, currency, locale)}
             />
-            {quote.rules.map((rule) => (
-              <QuoteRow
-                key={rule.id}
-                label={rule.label}
-                value={formatSignedMoney(rule.amount, currency, locale)}
-              />
-            ))}
             {quote.discountAmount > 0 ? (
               <QuoteRow
                 label={

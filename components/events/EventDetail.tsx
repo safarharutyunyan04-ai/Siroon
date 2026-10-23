@@ -118,9 +118,7 @@ export function EventDetail({ eventId }: { eventId: string }) {
           >
             {formatMoney(quote.total, currency, locale)}
           </p>
-          {quote.subtotal !== quote.total ||
-          quote.rules.length > 0 ||
-          quote.discountAmount > 0 ? (
+          {quote.subtotal !== quote.total || quote.discountAmount > 0 ? (
             <div className="mt-4 max-w-sm space-y-1.5 text-[13px] text-muted">
               <div className="flex justify-between gap-4">
                 <span>{t(locale, "subtotal")}</span>
@@ -128,15 +126,6 @@ export function EventDetail({ eventId }: { eventId: string }) {
                   {formatMoney(quote.subtotal, currency, locale)}
                 </span>
               </div>
-              {quote.rules.map((rule) => (
-                <div key={rule.id} className="flex justify-between gap-4">
-                  <span className="min-w-0 truncate">{rule.label}</span>
-                  <span className="shrink-0 tabular-nums text-foreground/80">
-                    {rule.amount > 0 ? "+" : rule.amount < 0 ? "−" : ""}
-                    {formatMoney(Math.abs(rule.amount), currency, locale)}
-                  </span>
-                </div>
-              ))}
               {quote.discountAmount > 0 ? (
                 <div className="flex justify-between gap-4">
                   <span>

@@ -107,39 +107,21 @@ export function quoteEvent(
 
   const subtotal = lines.reduce((sum, line) => sum + line.amount, 0);
   const discount = normalizeDiscount(event.discount);
-  const priceRules = normalizePriceRules(event.priceRules);
-
-  const rules: QuoteRule[] = priceRules.map((rule) => {
-    const amount =
-      rule.kind === "percent"
-        ? (subtotal * rule.value) / 100
-        : rule.value;
-    return {
-      id: rule.id,
-      label: rule.label.trim() || "—",
-      kind: rule.kind,
-      value: rule.value,
-      amount,
-    };
-  });
-
-  const rulesTotal = rules.reduce((sum, rule) => sum + rule.amount, 0);
-  const afterRules = subtotal + rulesTotal;
 
   const discountAmount =
     discount.kind === "percent"
-      ? (afterRules * discount.value) / 100
+      ? (subtotal * discount.value) / 100
       : discount.kind === "amount"
-        ? Math.min(discount.value, Math.max(0, afterRules))
+        ? Math.min(discount.value, Math.max(0, subtotal))
         : 0;
 
-  const total = Math.max(0, Math.round(afterRules - discountAmount));
+  const total = Math.max(0, Math.round(subtotal - discountAmount));
 
   return {
     lines,
     subtotal: Math.round(subtotal),
-    rules,
-    rulesTotal: Math.round(rulesTotal),
+    rules: [],
+    rulesTotal: 0,
     discount,
     discountAmount: Math.round(discountAmount),
     total,
