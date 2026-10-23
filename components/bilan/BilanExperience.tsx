@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { BackupPanel } from "@/components/backup/BackupPanel";
 import {
   billedEvents,
   formatMonthLabel,
@@ -250,8 +249,6 @@ export function BilanExperience() {
               </ul>
             )}
           </section>
-
-          <BackupPanel />
         </>
       )}
     </div>

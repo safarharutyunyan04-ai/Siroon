@@ -73,26 +73,3 @@ export type VenueEvent = {
   updatedAt: string;
 };
 
-export type SeatZone = "top" | "bottom" | "center";
-
-export type TableKind = "standard" | "head12" | "bridal";
-
-export type Seat = {
-  id: string;
-  label: string;
-};
-
-export type SeatingTable = {
-  id: string;
-  number: number;
-  kind: TableKind;
-  zone: SeatZone;
-  seats: Seat[];
-};
-
-export type SeatingPlan = {
-  eventId: string;
-  roomId: RoomId;
-  tables: SeatingTable[];
-  updatedAt: string;
-};

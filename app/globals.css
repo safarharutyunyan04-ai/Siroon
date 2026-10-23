@@ -138,8 +138,7 @@ body {
 }
 
 .room-tile[data-selected="true"] {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
+  /* ring handled per-room via roomTone */
 }
 
 .room-tile:hover {
@@ -222,66 +221,6 @@ body {
   .list-row:hover {
     transform: none;
   }
-}
-
-.seating-print-header {
-  margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid #c45c6a;
-}
-
-.seating-print-brand {
-  font-size: 11px;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: #a34454;
-  margin: 0 0 0.35rem;
-}
-
-.seating-print-header h1 {
-  font-family: var(--font-display), Georgia, serif;
-  font-size: 1.75rem;
-  font-weight: 500;
-  margin: 0 0 0.35rem;
-}
-
-.seating-print-header p {
-  margin: 0;
-  color: #5f5750;
-  font-size: 0.95rem;
-}
-
-.seating-print-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.85rem;
-}
-
-.seating-print-card {
-  break-inside: avoid;
-  border: 1px solid #c45c6a;
-  border-radius: 8px;
-  padding: 0.75rem 0.85rem;
-}
-
-.seating-print-card h2 {
-  font-size: 0.95rem;
-  font-weight: 600;
-  margin: 0 0 0.45rem;
-  color: #9a4554;
-}
-
-.seating-print-card ol {
-  margin: 0;
-  padding-left: 1.1rem;
-  font-size: 0.85rem;
-  line-height: 1.45;
-}
-
-.seating-print-empty {
-  margin: 0;
-  color: #5f7278;
-  font-size: 0.85rem;
 }
 
 .le-man-page-veil {
@@ -564,14 +503,6 @@ body {
     max-width: none !important;
     padding: 0 !important;
     margin: 0 !important;
-  }
-
-  .seating-print {
-    display: block !important;
-  }
-
-  .seating-print-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .carte-print {

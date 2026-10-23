@@ -7,14 +7,8 @@ import { formatMoney, todayIso } from "@/lib/format";
 import { getLocaleMeta, t } from "@/lib/i18n/messages";
 import { useCurrency, useEvents, useLocale, useMenu } from "@/lib/hooks";
 import { quoteEvent } from "@/lib/pricing";
-import { roomName } from "@/lib/rooms";
-import type { Locale, VenueEvent } from "@/types/domain";
-
-const roomDot: Record<string, string> = {
-  "hall-1": "bg-teal",
-  "hall-2": "bg-accent",
-  "hall-3": "bg-sky",
-};
+import { roomName, roomTone } from "@/lib/rooms";
+import type { Locale, RoomId, VenueEvent } from "@/types/domain";
 
 function subscribeNoop() {
   return () => undefined;
@@ -107,7 +101,7 @@ export function PlanningExperience() {
           >
             ›
           </button>
-          <Button href="/events/new" className="ml-1">
+          <Button href="/events/new" size="lg" className="ml-1">
             {t(locale, "newEvent")}
           </Button>
         </div>
@@ -185,7 +179,8 @@ export function PlanningExperience() {
                           <span
                             key={event.id}
                             className={`h-1.5 w-1.5 rounded-full ${
-                              roomDot[event.roomId] ?? "bg-teal"
+                              roomTone[event.roomId as RoomId]?.dot ??
+                              "bg-[#c45c6a]"
                             }`}
                           />
                         ))}

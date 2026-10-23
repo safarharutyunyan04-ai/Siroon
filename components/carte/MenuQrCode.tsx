@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/Button";
 import { t } from "@/lib/i18n/messages";
 import { useLocale, usePublicBaseUrl } from "@/lib/hooks";
@@ -21,17 +21,25 @@ function qrImageUrl(target: string, size = 280) {
   return `https://api.qrserver.com/v1/create-qr-code/?${params.toString()}`;
 }
 
+function subscribeNoop() {
+  return () => {};
+}
+
+function getClientOrigin() {
+  return typeof window !== "undefined" ? window.location.origin : "";
+}
+
 export function MenuQrCode({ className = "" }: { className?: string }) {
   const { locale } = useLocale();
   const { publicBaseUrl, ready } = usePublicBaseUrl();
-  const [origin, setOrigin] = useState("");
-
-  useEffect(() => {
-    setOrigin(window.location.origin);
-  }, []);
+  const origin = useSyncExternalStore(
+    subscribeNoop,
+    getClientOrigin,
+    () => "",
+  );
 
   const carteUrl = useMemo(() => {
-    if (!ready && !origin) return "";
+    if (!ready && !origin && !envSiteUrl()) return "";
     const base =
       resolvePublicBaseUrl(publicBaseUrl, origin) || envSiteUrl() || origin;
     return buildCarteUrl(base);
@@ -111,12 +119,18 @@ export function MenuQrCode({ className = "" }: { className?: string }) {
       </div>
 
       <div className="mt-6 flex flex-wrap justify-center gap-2">
-        <Button type="button" onClick={download} disabled={!dataUrl}>
+        <Button
+          type="button"
+          size="lg"
+          onClick={download}
+          disabled={!dataUrl}
+        >
           {t(locale, "menuQrDownload")}
         </Button>
         <Button
           type="button"
           variant="secondary"
+          size="lg"
           onClick={printQr}
           disabled={!dataUrl}
         >

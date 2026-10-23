@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { AuthGate } from "@/components/auth/AuthGate";
 import { SiroonMark } from "@/components/brand/SiroonMark";
-import { DisplayBoard } from "@/components/ecran/DisplayBoard";
 import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
-import { ExpandIcon } from "@/components/ui/ExpandIcon";
+import { signOut } from "@/lib/auth-store";
+import { useAuth } from "@/lib/hooks-auth";
 import { t } from "@/lib/i18n/messages";
 import { useLocale } from "@/lib/hooks";
 
@@ -14,11 +14,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { locale } = useLocale();
-  const onEcranRoute = pathname.startsWith("/ecran");
+  const { user, requiresAuth } = useAuth();
   const onCarteRoute = pathname.startsWith("/carte");
+  const onLoginRoute = pathname.startsWith("/login");
   const onPlanning = pathname.startsWith("/planning");
-  const [boardPath, setBoardPath] = useState<string | null>(null);
-  const boardOpen = boardPath === pathname;
+  const onHome = pathname === "/";
 
   const links = [
     { href: "/", label: t(locale, "navToday") },
@@ -27,21 +27,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     { href: "/bilan", label: t(locale, "navBilan") },
   ] as const;
 
-  if (onEcranRoute) {
-    return (
-      <div className="relative flex min-h-dvh flex-col">
-        <DisplayBoard onClose={() => router.push("/")} />
-      </div>
-    );
-  }
-
-  if (onCarteRoute) {
+  if (onCarteRoute || onLoginRoute) {
     return <div className="relative flex min-h-dvh flex-col">{children}</div>;
   }
 
   return (
-    <>
-      <header className="sticky top-0 z-20 border-b border-border/70 bg-surface-raised/90 backdrop-blur-xl">
+    <AuthGate>
+      <div
+        className={
+          onHome
+            ? "flex h-dvh max-h-dvh flex-col overflow-hidden"
+            : "flex min-h-dvh flex-col"
+        }
+      >
+      <header className="sticky top-0 z-20 shrink-0 border-b border-border/70 bg-surface-raised/90 backdrop-blur-xl">
         <div className="mx-auto flex w-full max-w-6xl items-center gap-2 px-3 py-2.5 sm:gap-3 sm:px-5">
           <Link href="/" className="group flex shrink-0 items-center gap-2">
             <SiroonMark
@@ -82,32 +81,33 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             >
               {t(locale, "navNewEvent")}
             </Link>
-            <button
-              type="button"
-              onClick={() => setBoardPath(pathname)}
-              aria-label={t(locale, "bigScreen")}
-              title={t(locale, "bigScreen")}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-[8px] border border-border/80 bg-white text-accent transition-colors hover:border-accent/40 hover:bg-accent-soft"
-            >
-              <ExpandIcon className="h-4 w-4" />
-            </button>
             <LanguageSwitcher className="bg-surface-raised/80 ring-border/60" />
+            {requiresAuth && user ? (
+              <button
+                type="button"
+                onClick={() =>
+                  void signOut().then(() => router.replace("/login"))
+                }
+                className="hidden h-8 items-center rounded-[8px] px-2 text-[11px] font-medium tracking-[0.04em] text-muted uppercase transition-colors hover:text-foreground sm:inline-flex"
+              >
+                {t(locale, "logout")}
+              </button>
+            ) : null}
           </div>
         </div>
       </header>
       <main
-        className={`mx-auto flex w-full min-w-0 max-w-6xl flex-1 flex-col px-3 sm:px-5 ${
-          onPlanning ? "py-3 sm:py-4" : "py-6 sm:py-8"
-        }`}
+        className={
+          onHome
+            ? "flex min-h-0 w-full flex-1 flex-col overflow-hidden"
+            : `mx-auto flex w-full min-w-0 max-w-6xl flex-1 flex-col px-3 sm:px-5 ${
+                onPlanning ? "py-3 sm:py-4" : "py-6 sm:py-8"
+              }`
+        }
       >
         {children}
       </main>
-
-      {boardOpen ? (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-[var(--background)]">
-          <DisplayBoard onClose={() => setBoardPath(null)} />
-        </div>
-      ) : null}
-    </>
+      </div>
+    </AuthGate>
   );
 }

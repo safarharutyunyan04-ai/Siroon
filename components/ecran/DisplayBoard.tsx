@@ -1,32 +1,31 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { SiroonMark } from "@/components/brand/SiroonMark";
-import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 import { formatLongDate, formatMoney } from "@/lib/format";
 import { getLocaleMeta, t } from "@/lib/i18n/messages";
-import { useCurrency, useEvents, useLocale, useMenu, useTodayEvents } from "@/lib/hooks";
+import {
+  useCurrency,
+  useEvents,
+  useLocale,
+  useMenu,
+  useTodayEvents,
+} from "@/lib/hooks";
 import { quoteEvent } from "@/lib/pricing";
 import { roomName, rooms } from "@/lib/rooms";
-import type { Locale, VenueEvent } from "@/types/domain";
+import type { Locale, RoomId, VenueEvent } from "@/types/domain";
 
 type DisplayBoardProps = {
   onClose?: () => void;
-  autoFullscreen?: boolean;
 };
 
-export function DisplayBoard({
-  onClose,
-  autoFullscreen = false,
-}: DisplayBoardProps) {
-  const rootRef = useRef<HTMLDivElement>(null);
+export function DisplayBoard({ onClose }: DisplayBoardProps) {
   const { locale } = useLocale();
   const { events, ready, today } = useTodayEvents();
   const { events: allEvents } = useEvents();
   const { items: menu } = useMenu();
   const { currency } = useCurrency();
   const [now, setNow] = useState(() => new Date());
-  const [fullscreen, setFullscreen] = useState(false);
   const intl = getLocaleMeta(locale).intl;
 
   useEffect(() => {
@@ -34,30 +33,14 @@ export function DisplayBoard({
     return () => window.clearInterval(timer);
   }, []);
 
-  useEffect(() => {
-    function onChange() {
-      setFullscreen(Boolean(document.fullscreenElement));
-    }
-    onChange();
-    document.addEventListener("fullscreenchange", onChange);
-    return () => document.removeEventListener("fullscreenchange", onChange);
-  }, []);
-
-  useEffect(() => {
-    if (!autoFullscreen) return;
-    const node = rootRef.current;
-    if (!node || document.fullscreenElement) return;
-    void node.requestFullscreen().catch(() => undefined);
-  }, [autoFullscreen]);
-
   const clock = new Intl.DateTimeFormat(intl, {
     hour: "2-digit",
     minute: "2-digit",
   }).format(now);
 
-  const seconds = new Intl.DateTimeFormat(intl, {
-    second: "2-digit",
-  }).format(now);
+  const sortedToday = [...events].sort((a, b) =>
+    (a.startTime || "99:99").localeCompare(b.startTime || "99:99"),
+  );
 
   const upcoming = allEvents
     .filter(
@@ -66,197 +49,176 @@ export function DisplayBoard({
         event.status !== "cancelled" &&
         event.status !== "done",
     )
-    .slice(0, 5);
-
-  const sortedToday = [...events].sort((a, b) =>
-    (a.startTime || "99:99").localeCompare(b.startTime || "99:99"),
-  );
-
-  async function toggleFullscreen() {
-    const node = rootRef.current;
-    if (!node) return;
-    try {
-      if (document.fullscreenElement) {
-        await document.exitFullscreen();
-      } else {
-        await node.requestFullscreen();
-      }
-    } catch {
-      /* ignore */
-    }
-  }
-
-  async function handleClose() {
-    try {
-      if (document.fullscreenElement) {
-        await document.exitFullscreen();
-      }
-    } catch {
-      /* ignore */
-    }
-    onClose?.();
-  }
+    .slice(0, 2);
 
   return (
-    <div
-      ref={rootRef}
-      className="relative flex min-h-dvh flex-col overflow-x-clip bg-[var(--background)] px-4 py-4 sm:px-8 sm:py-6 lg:px-10 lg:py-8"
-    >
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_20%_0%,rgba(196,92,106,0.18),transparent_50%),radial-gradient(ellipse_at_90%_40%,rgba(255,255,255,0.5),transparent_45%)]"
-      />
-
-      <header className="relative flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+    <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden px-4 py-4 sm:px-6 sm:py-5 lg:px-8 lg:py-6">
+      {/* En-tête : date + heure */}
+      <header className="relative flex shrink-0 items-end justify-between gap-4 border-b border-border/70 pb-4">
         <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-3">
-            <SiroonMark size={36} />
-            <p className="font-brand text-xl tracking-[0.22em] text-accent uppercase sm:text-2xl">
-              Siroon
-            </p>
-            <LanguageSwitcher />
-          </div>
-          <h1 className="font-display mt-2 text-3xl leading-[1.1] font-medium tracking-tight text-balance sm:mt-3 sm:text-4xl lg:text-5xl">
+          <p className="text-[11px] font-medium tracking-[0.2em] text-accent uppercase">
+            {t(locale, "today")}
+          </p>
+          <h1 className="font-display mt-1 truncate text-2xl font-medium tracking-tight sm:text-3xl">
             {formatLongDate(today, locale)}
           </h1>
         </div>
-        <div className="sm:text-right">
-          <p className="font-display text-5xl leading-none font-medium tabular-nums text-accent sm:text-6xl lg:text-7xl">
+        <div className="flex shrink-0 flex-col items-end gap-1">
+          <p className="font-display text-4xl leading-none font-medium tabular-nums text-accent sm:text-5xl">
             {clock}
-            <span className="ml-2 text-2xl text-muted sm:text-3xl">{seconds}</span>
           </p>
-          <div className="mt-3 flex flex-wrap items-center gap-2 sm:justify-end">
+          {onClose ? (
             <button
               type="button"
-              onClick={toggleFullscreen}
-              className="rounded-[10px] bg-white/90 px-3 py-2 text-[12px] font-medium text-accent ring-1 ring-border/80 transition-colors hover:bg-accent-soft sm:px-4"
+              onClick={onClose}
+              className="text-[12px] font-medium text-muted hover:text-foreground"
             >
-              {fullscreen
-                ? t(locale, "exitFullscreen")
-                : t(locale, "fullscreen")}
+              {t(locale, "back")}
             </button>
-            {onClose ? (
-              <button
-                type="button"
-                onClick={handleClose}
-                className="rounded-[12px] px-3 py-2 text-[12px] font-medium text-muted transition-colors hover:text-foreground sm:px-4"
-              >
-                {t(locale, "quit")}
-              </button>
-            ) : null}
-          </div>
+          ) : null}
         </div>
       </header>
 
-      <div className="relative mt-6 grid min-h-0 flex-1 gap-4 sm:mt-8 sm:gap-5 lg:grid-cols-[1.15fr_0.85fr] lg:gap-6">
-        <section className="panel flex min-h-0 flex-col overflow-hidden px-4 py-5 sm:px-6 sm:py-6">
-          <h2 className="font-display text-2xl font-medium sm:text-3xl">
-            {t(locale, "today")}
+      {/* Les 3 salles — ancre visuelle */}
+      <section className="relative mt-5 grid shrink-0 grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
+        {rooms.map((room) => {
+          const roomEvents = sortedToday.filter((e) => e.roomId === room.id);
+          const current = pickCurrent(roomEvents, clock);
+          return (
+            <RoomCard
+              key={room.id}
+              roomId={room.id}
+              name={t(locale, room.nameKey)}
+              capacity={room.capacity}
+              placesLabel={t(locale, "placesShort")}
+              freeLabel={t(locale, "free")}
+              guestsLabel={t(locale, "guests")}
+              current={current}
+            />
+          );
+        })}
+      </section>
+
+      {/* Planning du jour */}
+      <section className="relative mt-5 flex min-h-0 flex-1 flex-col overflow-hidden">
+        <div className="flex shrink-0 items-baseline justify-between gap-3">
+          <h2 className="font-display text-lg font-medium sm:text-xl">
+            {t(locale, "todayEvents")}
           </h2>
-          {!ready ? (
-            <p className="mt-10 text-xl text-muted">…</p>
-          ) : sortedToday.length === 0 ? (
-            <p className="mt-8 font-display text-2xl text-muted sm:text-3xl">
-              {t(locale, "free")}
-            </p>
-          ) : (
-            <ul className="mt-5 flex flex-1 flex-col gap-1 overflow-y-auto sm:mt-6 sm:gap-2">
-              {sortedToday.map((event) => (
-                <EventRow
-                  key={event.id}
-                  event={event}
-                  total={quoteEvent(event, menu, currency).total}
-                  currency={currency}
-                  locale={locale}
-                  large
-                />
-              ))}
-            </ul>
-          )}
-        </section>
-
-        <div className="flex min-h-0 flex-col gap-4 sm:gap-5">
-          <section className="grid flex-1 gap-3 sm:gap-4">
-            {rooms.map((room, index) => {
-              const roomEvents = sortedToday.filter(
-                (event) => event.roomId === room.id,
-              );
-              const current = pickCurrent(roomEvents, clock);
-              const washes = [
-                "from-[#f8ecef] to-white",
-                "from-[#f5e8eb] to-white",
-                "from-[#f1e4e7] to-white",
-              ];
-              return (
-                <div
-                  key={room.id}
-                  className={`rounded-[var(--radius)] border border-border/80 bg-linear-to-br ${washes[index]} px-4 py-4 sm:px-5 sm:py-5`}
-                >
-                  <div className="flex items-baseline justify-between gap-3">
-                    <p className="font-display text-xl font-medium sm:text-2xl">
-                      {t(locale, room.nameKey)}
-                    </p>
-                    <p className="shrink-0 text-sm text-muted">
-                      {room.capacity} {t(locale, "placesShort")}
-                    </p>
-                  </div>
-                  {current ? (
-                    <div className="mt-3">
-                      <p className="font-display text-lg text-teal tabular-nums sm:text-xl">
-                        {current.startTime || "—"}
-                      </p>
-                      <p className="mt-1 text-base font-medium sm:text-lg">
-                        {current.title}
-                      </p>
-                      {current.guests > 0 ? (
-                        <p className="mt-1 text-sm text-muted">
-                          {current.guests} {t(locale, "guests")}
-                        </p>
-                      ) : null}
-                    </div>
-                  ) : (
-                    <p className="mt-3 font-display text-xl text-muted sm:text-2xl">
-                      {t(locale, "free")}
-                    </p>
-                  )}
-                </div>
-              );
-            })}
-          </section>
-
           {upcoming.length > 0 ? (
-            <section className="panel px-4 py-5 sm:px-5 sm:py-5">
-              <h2 className="font-display text-xl font-medium sm:text-2xl">
-                {t(locale, "next")}
-              </h2>
-              <ul className="mt-3 flex flex-col gap-2 sm:mt-4 sm:gap-3">
-                {upcoming.map((event) => (
-                  <li
-                    key={event.id}
-                    className="flex flex-wrap items-baseline justify-between gap-2 border-t border-border pt-3 first:border-t-0 first:pt-0"
-                  >
-                    <div>
-                      <p className="text-base font-medium sm:text-lg">
-                        {event.title}
-                      </p>
-                      <p className="mt-1 text-sm text-muted">
-                        {[
-                          event.date,
-                          event.startTime || null,
-                          roomName(event.roomId, locale),
-                        ]
-                          .filter(Boolean)
-                          .join(" · ")}
-                      </p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </section>
+            <p className="truncate text-[12px] text-muted">
+              {t(locale, "next")}
+              {": "}
+              {upcoming.map((e) => e.title).join(" · ")}
+            </p>
           ) : null}
         </div>
-      </div>
+
+        {!ready ? (
+          <p className="mt-6 text-sm text-muted">{t(locale, "loading")}</p>
+        ) : sortedToday.length === 0 ? (
+          <div className="mt-6 flex flex-1 flex-col items-start justify-center">
+            <p className="font-display text-2xl text-muted">{t(locale, "free")}</p>
+            <Link
+              href="/events/new"
+              className="mt-3 text-[13px] font-medium text-accent hover:text-accent-deep"
+            >
+              {t(locale, "createEvent")}
+            </Link>
+          </div>
+        ) : (
+          <ul className="mt-3 flex min-h-0 flex-1 flex-col justify-start divide-y divide-border/60 overflow-hidden">
+            {sortedToday.slice(0, 6).map((event) => (
+              <EventRow
+                key={event.id}
+                event={event}
+                total={quoteEvent(event, menu, currency).total}
+                currency={currency}
+                locale={locale}
+              />
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
+  );
+}
+
+function RoomCard({
+  roomId,
+  name,
+  capacity,
+  placesLabel,
+  freeLabel,
+  guestsLabel,
+  current,
+}: {
+  roomId: RoomId;
+  name: string;
+  capacity: number;
+  placesLabel: string;
+  freeLabel: string;
+  guestsLabel: string;
+  current?: VenueEvent;
+}) {
+  const busy = Boolean(current);
+  // Fonds solides (pas de blanc sur rose clair)
+  const fill =
+    roomId === "hall-1"
+      ? "border-[#8f3a48] bg-[#a34454]"
+      : roomId === "hall-2"
+        ? "border-[#c45c6a]/45 bg-[#f3d6db]"
+        : "border-[#c45c6a]/30 bg-[#f8ecef]";
+  const onDark = roomId === "hall-1";
+  const title = onDark ? "text-white" : "text-[#5c2430]";
+  const soft = onDark ? "text-white/75" : "text-[#8a4a56]";
+  const time = onDark ? "text-white" : "text-[#a34454]";
+
+  return (
+    <article
+      className={`relative overflow-hidden rounded-[12px] border px-4 py-4 sm:px-5 sm:py-5 ${
+        busy ? fill : "border-border/70 bg-surface-raised/90"
+      }`}
+    >
+      <div className="flex items-baseline justify-between gap-2">
+        <h3
+          className={`font-display text-lg font-medium sm:text-xl ${
+            busy ? title : "text-foreground"
+          }`}
+        >
+          {name}
+        </h3>
+        <span
+          className={`text-[11px] tabular-nums ${busy ? soft : "text-muted"}`}
+        >
+          {capacity} {placesLabel}
+        </span>
+      </div>
+
+      {current ? (
+        <div className="mt-5">
+          <p
+            className={`font-display text-2xl tabular-nums sm:text-3xl ${time}`}
+          >
+            {current.startTime || "—"}
+          </p>
+          <p
+            className={`mt-1 truncate text-[15px] font-medium sm:text-base ${title}`}
+          >
+            {current.title}
+          </p>
+          {current.guests > 0 ? (
+            <p className={`mt-1 text-[12px] ${soft}`}>
+              {current.guests} {guestsLabel}
+            </p>
+          ) : null}
+        </div>
+      ) : (
+        <p className="mt-8 font-display text-xl text-muted sm:text-2xl">
+          {freeLabel}
+        </p>
+      )}
+    </article>
   );
 }
 
@@ -265,49 +227,40 @@ function EventRow({
   total,
   currency,
   locale,
-  large,
 }: {
   event: VenueEvent;
   total: number;
   currency: Parameters<typeof formatMoney>[1];
   locale: Locale;
-  large?: boolean;
 }) {
   return (
-    <li
-      className={`grid gap-2 rounded-[12px] px-3 py-4 sm:grid-cols-[7rem_minmax(0,1fr)_auto] sm:items-baseline sm:gap-6 ${
-        large ? "sm:py-5" : ""
-      }`}
-    >
-      <p
-        className={`font-display font-medium text-teal tabular-nums ${
-          large ? "text-3xl sm:text-4xl" : "text-2xl"
-        }`}
+    <li>
+      <Link
+        href={`/events/${event.id}`}
+        className="grid grid-cols-[4.5rem_minmax(0,1fr)_auto] items-baseline gap-3 py-3 transition-colors hover:bg-white/40 sm:gap-5 sm:py-3.5"
       >
-        {event.startTime || "—"}
-      </p>
-      <div>
-        <p className={`font-medium ${large ? "text-xl sm:text-2xl" : "text-lg"}`}>
-          {event.title}
-        </p>
-        <p className="mt-1 text-sm text-muted sm:text-base">
-          {[
-            roomName(event.roomId, locale),
-            event.guests > 0
-              ? `${event.guests} ${t(locale, "guests")}`
-              : null,
-          ]
-            .filter(Boolean)
-            .join(" · ")}
-        </p>
-      </div>
-      <p
-        className={`font-medium tabular-nums ${
-          large ? "text-xl sm:text-2xl" : "text-lg"
-        }`}
-      >
-        {formatMoney(total, currency, locale)}
-      </p>
+        <span className="font-display text-xl font-medium text-accent tabular-nums sm:text-2xl">
+          {event.startTime || "—"}
+        </span>
+        <span className="min-w-0">
+          <span className="block truncate text-[14px] font-medium sm:text-[15px]">
+            {event.title}
+          </span>
+          <span className="mt-0.5 block truncate text-[12px] text-muted">
+            {[
+              roomName(event.roomId, locale),
+              event.guests > 0
+                ? `${event.guests} ${t(locale, "guests")}`
+                : null,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+          </span>
+        </span>
+        <span className="shrink-0 text-[13px] tabular-nums text-foreground/80 sm:text-[14px]">
+          {formatMoney(total, currency, locale)}
+        </span>
+      </Link>
     </li>
   );
 }

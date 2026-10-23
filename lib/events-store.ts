@@ -1,6 +1,14 @@
 import { id } from "@/lib/format";
 import { normalizeDiscount, normalizePriceRules } from "@/lib/pricing";
-import { deletePlan } from "@/lib/seating-store";
+import {
+  deleteEventRemote,
+  fetchEvents,
+  replaceAllEvents,
+  subscribeEventsTable,
+  upsertEvent,
+} from "@/lib/remote/events";
+import { isSupabaseConfigured } from "@/lib/supabase/client";
+import { waitForSession } from "@/lib/supabase/session";
 import type {
   EventDiscount,
   EventLine,
@@ -15,6 +23,11 @@ const storageKey = "siroon:events";
 let events: VenueEvent[] = [];
 const empty: VenueEvent[] = [];
 let ready = false;
+let remoteBootstrapped = false;
+let bootstrapPromise: Promise<void> | null = null;
+let applyingRemote = false;
+let unsubscribeRemote: (() => void) | null = null;
+let reloadTimer: ReturnType<typeof setTimeout> | null = null;
 const listeners = new Set<() => void>();
 
 export type EventInput = {
@@ -57,6 +70,7 @@ export function ensureEvents() {
   events = read();
   ready = true;
   emit(false);
+  void bootstrapRemote();
 }
 
 export function createEvent(input: EventInput) {
@@ -80,6 +94,7 @@ export function createEvent(input: EventInput) {
   };
   events = [event, ...events].sort(byDate);
   emit(true);
+  void upsertEvent(event);
   return event;
 }
 
@@ -88,48 +103,50 @@ export function updateEvent(
   patch: Partial<EventInput> & { status?: EventStatus },
 ) {
   hydrate();
+  let updated: VenueEvent | undefined;
   events = events
-    .map((event) =>
-      event.id === eventId
-        ? {
-            ...event,
-            ...patch,
-            title:
-              patch.title !== undefined
-                ? patch.title.trim() || event.title
-                : event.title,
-            contact:
-              patch.contact !== undefined ? patch.contact.trim() : event.contact,
-            notes: patch.notes !== undefined ? patch.notes.trim() : event.notes,
-            startTime:
-              patch.startTime !== undefined
-                ? patch.startTime.trim()
-                : event.startTime,
-            guests:
-              patch.guests !== undefined
-                ? Math.max(0, Math.round(patch.guests) || 0)
-                : event.guests,
-            discount:
-              patch.discount !== undefined
-                ? normalizeDiscount(patch.discount)
-                : event.discount,
-            priceRules:
-              patch.priceRules !== undefined
-                ? normalizePriceRules(patch.priceRules)
-                : event.priceRules,
-            updatedAt: new Date().toISOString(),
-          }
-        : event,
-    )
+    .map((event) => {
+      if (event.id !== eventId) return event;
+      updated = {
+        ...event,
+        ...patch,
+        title:
+          patch.title !== undefined
+            ? patch.title.trim() || event.title
+            : event.title,
+        contact:
+          patch.contact !== undefined ? patch.contact.trim() : event.contact,
+        notes: patch.notes !== undefined ? patch.notes.trim() : event.notes,
+        startTime:
+          patch.startTime !== undefined
+            ? patch.startTime.trim()
+            : event.startTime,
+        guests:
+          patch.guests !== undefined
+            ? Math.max(0, Math.round(patch.guests) || 0)
+            : event.guests,
+        discount:
+          patch.discount !== undefined
+            ? normalizeDiscount(patch.discount)
+            : event.discount,
+        priceRules:
+          patch.priceRules !== undefined
+            ? normalizePriceRules(patch.priceRules)
+            : event.priceRules,
+        updatedAt: new Date().toISOString(),
+      };
+      return updated;
+    })
     .sort(byDate);
   emit(true);
+  if (updated) void upsertEvent(updated);
 }
 
 export function deleteEvent(eventId: string) {
   hydrate();
   events = events.filter((event) => event.id !== eventId);
   emit(true);
-  deletePlan(eventId);
+  void deleteEventRemote(eventId);
 }
 
 export function getEvent(eventId: string) {
@@ -208,4 +225,53 @@ function emit(persist: boolean) {
     }
   }
   for (const listener of listeners) listener();
+}
+
+async function bootstrapRemote() {
+  if (remoteBootstrapped || !isSupabaseConfigured()) return;
+  if (bootstrapPromise) return bootstrapPromise;
+
+  bootstrapPromise = (async () => {
+    const session = await waitForSession();
+    if (!session || remoteBootstrapped) return;
+    remoteBootstrapped = true;
+
+    const remote = await fetchEvents();
+    if (remote) {
+      if (remote.length === 0 && events.length > 0) {
+        await replaceAllEvents(events);
+      } else if (remote.length > 0) {
+        applyRemote(remote);
+      }
+    }
+
+    if (!unsubscribeRemote) {
+      unsubscribeRemote = subscribeEventsTable(() => {
+        if (applyingRemote) return;
+        if (reloadTimer) clearTimeout(reloadTimer);
+        reloadTimer = setTimeout(() => {
+          reloadTimer = null;
+          void reloadFromRemote();
+        }, 300);
+      });
+    }
+  })();
+
+  await bootstrapPromise;
+}
+
+async function reloadFromRemote() {
+  const remote = await fetchEvents();
+  if (!remote) return;
+  applyRemote(remote);
+}
+
+function applyRemote(remoteEvents: VenueEvent[]) {
+  applyingRemote = true;
+  events = remoteEvents
+    .map((entry) => normalizeEvent(entry))
+    .filter((entry): entry is VenueEvent => entry !== null)
+    .sort(byDate);
+  emit(true);
+  applyingRemote = false;
 }

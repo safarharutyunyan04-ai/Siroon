@@ -28,18 +28,7 @@ import {
   getSettingsReady,
   subscribeSettings,
 } from "@/lib/settings-store";
-import {
-  ensurePlan,
-  ensureSeating,
-  getPlan,
-  getSeatingPlans,
-  getSeatingReady,
-  getServerSeatingPlans,
-  getServerSeatingReady,
-  subscribeSeating,
-} from "@/lib/seating-store";
 import { todayIso } from "@/lib/format";
-import type { RoomId } from "@/types/domain";
 
 export function useMenu() {
   const items = useSyncExternalStore(
@@ -163,31 +152,4 @@ export function usePublicBaseUrl() {
   }, []);
 
   return { publicBaseUrl: settings.publicBaseUrl, ready };
-}
-
-export function useSeatingPlan(eventId: string, roomId: RoomId | undefined) {
-  const plans = useSyncExternalStore(
-    subscribeSeating,
-    getSeatingPlans,
-    getServerSeatingPlans,
-  );
-  const ready = useSyncExternalStore(
-    subscribeSeating,
-    getSeatingReady,
-    getServerSeatingReady,
-  );
-
-  useEffect(() => {
-    ensureSeating();
-  }, []);
-
-  useEffect(() => {
-    if (!ready || !roomId) return;
-    ensurePlan(eventId, roomId);
-  }, [eventId, ready, roomId]);
-
-  return {
-    plan: plans.find((entry) => entry.eventId === eventId) ?? getPlan(eventId),
-    ready,
-  };
 }

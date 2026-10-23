@@ -15,7 +15,7 @@ import {
   normalizePriceRules,
   quoteEvent,
 } from "@/lib/pricing";
-import { rooms } from "@/lib/rooms";
+import { roomTone, rooms } from "@/lib/rooms";
 import type {
   Currency,
   DiscountKind,
@@ -198,26 +198,25 @@ export function EventForm({ event }: EventFormProps) {
             {t(locale, "room")}
           </h2>
           <div className="mt-5 grid gap-3 sm:grid-cols-3">
-            {rooms.map((room, index) => {
+            {rooms.map((room) => {
               const selected = roomId === room.id;
-              const wash =
-                index === 0
-                  ? "from-[#f8ecef] to-white"
-                  : index === 1
-                    ? "from-[#f5e8eb] to-white"
-                    : "from-[#f1e4e7] to-white";
+              const tone = roomTone[room.id];
+              const muted =
+                room.id === "hall-1" ? "text-white/75" : "text-[#a34454]/75";
               return (
                 <button
                   key={room.id}
                   type="button"
                   data-selected={selected}
                   onClick={() => setRoomId(room.id)}
-                  className={`room-tile border border-border/80 bg-linear-to-br ${wash} px-4 py-5 text-left`}
+                  className={`room-tile border bg-linear-to-br px-4 py-5 text-left ${tone.wash} ${tone.border} ${
+                    selected ? tone.selected : ""
+                  }`}
                 >
-                  <p className="font-display text-lg font-medium">
+                  <p className={`font-display text-lg font-medium ${tone.title}`}>
                     {t(locale, room.nameKey)}
                   </p>
-                  <p className="mt-2 text-sm text-muted">
+                  <p className={`mt-2 text-sm ${muted}`}>
                     {t(locale, "upTo")} {room.capacity} {t(locale, "places")}
                   </p>
                 </button>
@@ -464,11 +463,11 @@ export function EventForm({ event }: EventFormProps) {
               : t(locale, "lines")}
             {guests ? ` · ${guests} ${t(locale, "guests")}` : ""}
           </p>
-          <div className="mt-5 flex flex-wrap gap-2 lg:mt-6 lg:flex-col">
-            <Button className="flex-1 lg:w-full" onClick={submit}>
+          <div className="mt-5 flex flex-col gap-2 lg:mt-6">
+            <Button size="lg" className="w-full" onClick={submit}>
               {event ? t(locale, "saveEvent") : t(locale, "createTheEvent")}
             </Button>
-            <Button href="/" variant="ghost" className="flex-1 lg:w-full">
+            <Button href="/" variant="ghost" size="sm" className="w-full">
               {t(locale, "cancel")}
             </Button>
           </div>

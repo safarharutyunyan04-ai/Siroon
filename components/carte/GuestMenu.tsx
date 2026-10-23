@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo } from "react";
 import { GuestMenuPrint } from "@/components/carte/GuestMenuPrint";
 import { LeManLogo } from "@/components/brand/LeManLogo";
@@ -41,12 +40,6 @@ export function GuestMenu() {
               {t(locale, "printMenu")}
             </button>
             <LanguageSwitcher className="bg-black/45 ring-[#d4b56a]/25" />
-            <Link
-              href="/menu"
-              className="text-[10px] tracking-[0.18em] text-[#f3eee6]/45 uppercase transition-colors hover:text-[#d4b56a]"
-            >
-              Siroon
-            </Link>
           </div>
         </header>
 

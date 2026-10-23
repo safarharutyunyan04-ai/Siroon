@@ -1,4 +1,15 @@
 import { id } from "@/lib/format";
+import {
+  deleteCategories,
+  deleteItem,
+  fetchMenuRows,
+  replaceAllMenu,
+  subscribeMenuTables,
+  upsertCategory,
+  upsertItem,
+} from "@/lib/remote/menu";
+import { isSupabaseConfigured } from "@/lib/supabase/client";
+import { waitForSession } from "@/lib/supabase/session";
 import { translateToLocales } from "@/lib/translate";
 import type {
   Locale,
@@ -19,6 +30,11 @@ type MenuState = {
 const emptyState: MenuState = { categories: [], items: [] };
 let state: MenuState = emptyState;
 let ready = false;
+let remoteBootstrapped = false;
+let bootstrapPromise: Promise<void> | null = null;
+let applyingRemote = false;
+let unsubscribeRemote: (() => void) | null = null;
+let reloadTimer: ReturnType<typeof setTimeout> | null = null;
 const listeners = new Set<() => void>();
 
 export function subscribeMenu(listener: () => void) {
@@ -63,6 +79,7 @@ export function ensureMenu() {
   state = read();
   ready = true;
   emit(false);
+  void bootstrapRemote();
 }
 
 export function addMenuCategory(name: string, parentId: string | null = null) {
@@ -82,6 +99,7 @@ export function addMenuCategory(name: string, parentId: string | null = null) {
     categories: [...state.categories, category],
   };
   emit(true);
+  void upsertCategory(category);
   return category;
 }
 
@@ -91,31 +109,34 @@ export function updateMenuCategory(
   i18n?: MenuCategory["i18n"],
 ) {
   hydrate();
+  let updated: MenuCategory | undefined;
   state = {
     ...state,
-    categories: state.categories.map((category) =>
-      category.id === categoryId
-        ? {
-            ...category,
-            name: name.trim() || category.name,
-            i18n: i18n !== undefined ? i18n : category.i18n,
-          }
-        : category,
-    ),
+    categories: state.categories.map((category) => {
+      if (category.id !== categoryId) return category;
+      updated = {
+        ...category,
+        name: name.trim() || category.name,
+        i18n: i18n !== undefined ? i18n : category.i18n,
+      };
+      return updated;
+    }),
   };
   emit(true);
+  if (updated) void upsertCategory(updated);
 }
 
 export function deleteMenuCategory(categoryId: string) {
   hydrate();
-  const toRemove = collectCategoryIds(categoryId);
+  const toRemove = [...collectCategoryIds(categoryId)];
   state = {
     categories: state.categories.filter(
-      (category) => !toRemove.has(category.id),
+      (category) => !toRemove.includes(category.id),
     ),
-    items: state.items.filter((item) => !toRemove.has(item.categoryId)),
+    items: state.items.filter((item) => !toRemove.includes(item.categoryId)),
   };
   emit(true);
+  void deleteCategories(toRemove);
 }
 
 export function addMenuItem(input: {
@@ -140,6 +161,7 @@ export function addMenuItem(input: {
   };
   state = { ...state, items: [item, ...state.items] };
   emit(true);
+  void upsertItem(item);
   return item;
 }
 
@@ -159,31 +181,33 @@ export function updateMenuItem(
   >,
 ) {
   hydrate();
+  let updated: MenuItem | undefined;
   state = {
     ...state,
-    items: state.items.map((item) =>
-      item.id === itemId
-        ? {
-            ...item,
-            ...patch,
-            name:
-              patch.name !== undefined
-                ? patch.name.trim() || item.name
-                : item.name,
-            description:
-              patch.description !== undefined
-                ? patch.description.trim()
-                : item.description,
-            i18n: patch.i18n !== undefined ? patch.i18n : item.i18n,
-            price:
-              patch.price !== undefined
-                ? Math.max(0, Math.round(patch.price))
-                : item.price,
-          }
-        : item,
-    ),
+    items: state.items.map((item) => {
+      if (item.id !== itemId) return item;
+      updated = {
+        ...item,
+        ...patch,
+        name:
+          patch.name !== undefined
+            ? patch.name.trim() || item.name
+            : item.name,
+        description:
+          patch.description !== undefined
+            ? patch.description.trim()
+            : item.description,
+        i18n: patch.i18n !== undefined ? patch.i18n : item.i18n,
+        price:
+          patch.price !== undefined
+            ? Math.max(0, Math.round(patch.price))
+            : item.price,
+      };
+      return updated;
+    }),
   };
   emit(true);
+  if (updated) void upsertItem(updated);
 }
 
 export function deleteMenuItem(itemId: string) {
@@ -193,6 +217,7 @@ export function deleteMenuItem(itemId: string) {
     items: state.items.filter((item) => item.id !== itemId),
   };
   emit(true);
+  void deleteItem(itemId);
 }
 
 export function getCategory(categoryId: string) {
@@ -321,7 +346,9 @@ function normalizeCategory(
     i18n:
       category.i18n && typeof category.i18n === "object" ? category.i18n : {},
     parentId:
-      "parentId" in category ? ((category.parentId as string | null) ?? null) : null,
+      "parentId" in category
+        ? ((category.parentId as string | null) ?? null)
+        : null,
     sortOrder:
       typeof category.sortOrder === "number" ? category.sortOrder : index,
   };
@@ -371,4 +398,62 @@ function emit(persist: boolean) {
     }
   }
   for (const listener of listeners) listener();
+}
+
+async function bootstrapRemote() {
+  if (remoteBootstrapped || !isSupabaseConfigured()) return;
+  if (bootstrapPromise) return bootstrapPromise;
+
+  bootstrapPromise = (async () => {
+    if (remoteBootstrapped) return;
+    remoteBootstrapped = true;
+
+    // Guest /carte can read without auth; writes need login.
+    await waitForSession(1500);
+
+    const remote = await fetchMenuRows();
+    if (remote) {
+      const remoteEmpty =
+        remote.categories.length === 0 && remote.items.length === 0;
+      const localHasData =
+        state.categories.length > 0 || state.items.length > 0;
+
+      if (remoteEmpty && localHasData) {
+        await replaceAllMenu(state.categories, state.items);
+      } else if (!remoteEmpty) {
+        applyRemote(remote.categories, remote.items);
+      }
+    }
+
+    if (!unsubscribeRemote) {
+      unsubscribeRemote = subscribeMenuTables(() => {
+        if (applyingRemote) return;
+        if (reloadTimer) clearTimeout(reloadTimer);
+        reloadTimer = setTimeout(() => {
+          reloadTimer = null;
+          void reloadFromRemote();
+        }, 300);
+      });
+    }
+  })();
+
+  await bootstrapPromise;
+}
+
+async function reloadFromRemote() {
+  const remote = await fetchMenuRows();
+  if (!remote) return;
+  applyRemote(remote.categories, remote.items);
+}
+
+function applyRemote(categories: MenuCategory[], items: MenuItem[]) {
+  applyingRemote = true;
+  state = {
+    categories: categories.map((category, index) =>
+      normalizeCategory(category, index),
+    ),
+    items: items.map((item) => normalizeItem(item)),
+  };
+  emit(true);
+  applyingRemote = false;
 }

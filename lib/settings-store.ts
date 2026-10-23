@@ -1,3 +1,10 @@
+import {
+  fetchSettings,
+  subscribeSettingsTable,
+  upsertSettings,
+} from "@/lib/remote/settings";
+import { isSupabaseConfigured } from "@/lib/supabase/client";
+import { waitForSession } from "@/lib/supabase/session";
 import type { Currency, Locale } from "@/types/domain";
 import { normalizeBaseUrl } from "@/lib/site-url";
 
@@ -14,6 +21,11 @@ const defaults: Settings = { currency: "AMD", locale: "hy", publicBaseUrl: "" };
 let settings: Settings = defaults;
 const emptyReady = false;
 let ready = false;
+let remoteBootstrapped = false;
+let bootstrapPromise: Promise<void> | null = null;
+let applyingRemote = false;
+let unsubscribeRemote: (() => void) | null = null;
+let reloadTimer: ReturnType<typeof setTimeout> | null = null;
 const listeners = new Set<() => void>();
 
 export function subscribeSettings(listener: () => void) {
@@ -42,24 +54,28 @@ export function ensureSettings() {
   settings = read();
   ready = true;
   emit(false);
+  void bootstrapRemote();
 }
 
 export function setCurrency(currency: Currency) {
   hydrate();
   settings = { ...settings, currency };
   emit(true);
+  void upsertSettings(settings);
 }
 
 export function setLocale(locale: Locale) {
   hydrate();
   settings = { ...settings, locale };
   emit(true);
+  void upsertSettings(settings);
 }
 
 export function setPublicBaseUrl(publicBaseUrl: string) {
   hydrate();
   settings = { ...settings, publicBaseUrl: normalizeBaseUrl(publicBaseUrl) };
   emit(true);
+  void upsertSettings(settings);
 }
 
 function hydrate() {
@@ -75,29 +91,32 @@ function read(): Settings {
     const raw =
       localStorage.getItem(storageKey) ?? localStorage.getItem(legacyKey);
     if (!raw) return { ...defaults };
-    const parsed = JSON.parse(raw) as Partial<Settings>;
-    const currency =
-      parsed.currency === "AMD" ||
-      parsed.currency === "USD" ||
-      parsed.currency === "EUR" ||
-      parsed.currency === "RUB"
-        ? parsed.currency
-        : defaults.currency;
-    const locale =
-      parsed.locale === "hy" ||
-      parsed.locale === "fr" ||
-      parsed.locale === "en" ||
-      parsed.locale === "ru"
-        ? parsed.locale
-        : defaults.locale;
-    const publicBaseUrl =
-      typeof parsed.publicBaseUrl === "string"
-        ? normalizeBaseUrl(parsed.publicBaseUrl)
-        : defaults.publicBaseUrl;
-    return { currency, locale, publicBaseUrl };
+    return normalizeSettings(JSON.parse(raw) as Partial<Settings>);
   } catch {
     return { ...defaults };
   }
+}
+
+function normalizeSettings(parsed: Partial<Settings>): Settings {
+  const currency =
+    parsed.currency === "AMD" ||
+    parsed.currency === "USD" ||
+    parsed.currency === "EUR" ||
+    parsed.currency === "RUB"
+      ? parsed.currency
+      : defaults.currency;
+  const locale =
+    parsed.locale === "hy" ||
+    parsed.locale === "fr" ||
+    parsed.locale === "en" ||
+    parsed.locale === "ru"
+      ? parsed.locale
+      : defaults.locale;
+  const publicBaseUrl =
+    typeof parsed.publicBaseUrl === "string"
+      ? normalizeBaseUrl(parsed.publicBaseUrl)
+      : defaults.publicBaseUrl;
+  return { currency, locale, publicBaseUrl };
 }
 
 function emit(persist: boolean) {
@@ -109,4 +128,48 @@ function emit(persist: boolean) {
     }
   }
   for (const listener of listeners) listener();
+}
+
+async function bootstrapRemote() {
+  if (remoteBootstrapped || !isSupabaseConfigured()) return;
+  if (bootstrapPromise) return bootstrapPromise;
+
+  bootstrapPromise = (async () => {
+    const session = await waitForSession();
+    if (!session || remoteBootstrapped) return;
+    remoteBootstrapped = true;
+
+    const remote = await fetchSettings();
+    if (remote) {
+      applyRemote(remote);
+    } else {
+      await upsertSettings(settings);
+    }
+
+    if (!unsubscribeRemote) {
+      unsubscribeRemote = subscribeSettingsTable(() => {
+        if (applyingRemote) return;
+        if (reloadTimer) clearTimeout(reloadTimer);
+        reloadTimer = setTimeout(() => {
+          reloadTimer = null;
+          void reloadFromRemote();
+        }, 300);
+      });
+    }
+  })();
+
+  await bootstrapPromise;
+}
+
+async function reloadFromRemote() {
+  const remote = await fetchSettings();
+  if (!remote) return;
+  applyRemote(remote);
+}
+
+function applyRemote(remote: Settings) {
+  applyingRemote = true;
+  settings = normalizeSettings(remote);
+  emit(true);
+  applyingRemote = false;
 }

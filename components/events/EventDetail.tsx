@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { deleteEvent, updateEvent } from "@/lib/events-store";
 import { formatMoney, formatLongDate } from "@/lib/format";
@@ -17,6 +18,7 @@ export function EventDetail({ eventId }: { eventId: string }) {
   const { event, ready } = useEvent(eventId);
   const { items: menu } = useMenu();
   const { currency } = useCurrency();
+  const [justDone, setJustDone] = useState(false);
 
   if (!ready) {
     return <p className="text-sm text-muted">{t(locale, "loading")}</p>;
@@ -41,18 +43,57 @@ export function EventDetail({ eventId }: { eventId: string }) {
     groups.set(line.categoryId, list);
   }
 
+  const isDone = event.status === "done";
+
+  function toggleDone() {
+    const next = isDone ? "confirmed" : "done";
+    updateEvent(event!.id, { status: next });
+    if (next === "done") {
+      setJustDone(true);
+      window.setTimeout(() => setJustDone(false), 1600);
+    } else {
+      setJustDone(false);
+    }
+  }
+
   return (
     <div className="animate-rise">
-      <Button href="/planning" variant="ghost">
+      <Link
+        href="/planning"
+        className="inline-flex text-[13px] font-medium text-muted transition-colors hover:text-foreground"
+      >
         {t(locale, "backPlanning")}
-      </Button>
-      <section className="panel relative mt-8 overflow-hidden px-6 py-8 sm:px-8">
+      </Link>
+
+      <section
+        className={`panel relative mt-6 overflow-hidden px-6 py-8 transition-[box-shadow,border-color] duration-500 sm:mt-8 sm:px-8 ${
+          isDone
+            ? "border-[#2f6b4f]/35 shadow-[0_12px_36px_rgba(47,107,79,0.12)]"
+            : ""
+        }`}
+      >
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_100%_0%,rgba(196,92,106,0.12),transparent_50%)]"
+          className={`pointer-events-none absolute inset-0 transition-opacity duration-500 ${
+            isDone
+              ? "bg-[radial-gradient(ellipse_at_100%_0%,rgba(47,107,79,0.14),transparent_55%)] opacity-100"
+              : "bg-[radial-gradient(ellipse_at_100%_0%,rgba(196,92,106,0.12),transparent_50%)] opacity-100"
+          }`}
         />
         <div className="relative">
-          <h1 className="font-display text-4xl font-medium tracking-tight">
+          <div className="flex flex-wrap items-center gap-2">
+            <StatusChip done={isDone} locale={locale} pulse={justDone} />
+            {justDone ? (
+              <span
+                className="animate-rise text-lg"
+                aria-hidden
+              >
+                ✓
+              </span>
+            ) : null}
+          </div>
+
+          <h1 className="font-display mt-4 text-4xl font-medium tracking-tight">
             {event.title}
           </h1>
           <p className="mt-4 text-sm text-muted">
@@ -70,7 +111,11 @@ export function EventDetail({ eventId }: { eventId: string }) {
           {event.contact ? (
             <p className="mt-1 text-sm text-muted">{event.contact}</p>
           ) : null}
-          <p className="font-display mt-8 text-4xl font-medium text-accent tabular-nums">
+          <p
+            className={`font-display mt-8 text-4xl font-medium tabular-nums transition-colors duration-500 ${
+              isDone ? "text-[#2f6b4f]" : "text-accent"
+            }`}
+          >
             {formatMoney(quote.total, currency, locale)}
           </p>
           {quote.subtotal !== quote.total ||
@@ -109,31 +154,29 @@ export function EventDetail({ eventId }: { eventId: string }) {
         </div>
       </section>
 
-      <div className="mt-8 grid gap-3 sm:grid-cols-2">
-        <Button href={`/events/${event.id}/plan`} className="w-full">
-          {t(locale, "seatingPlan")}
-        </Button>
-        <Button href={`/events/${event.id}/edit`} variant="secondary" className="w-full">
+      <div className="mt-6 flex flex-col gap-3 sm:mt-8 sm:flex-row sm:flex-wrap sm:items-center">
+        <Button href={`/events/${event.id}/edit`} size="lg">
           {t(locale, "edit")}
         </Button>
-      </div>
-
-      <div className="mt-4 flex flex-wrap gap-2">
         <Button
-          variant="ghost"
-          onClick={() =>
-            updateEvent(event.id, {
-              status: event.status === "done" ? "confirmed" : "done",
-            })
-          }
+          variant={isDone ? "secondary" : "success"}
+          size="lg"
+          onClick={toggleDone}
         >
-          {event.status === "done"
-            ? t(locale, "reopen")
-            : t(locale, "markDone")}
+          {!isDone ? <span aria-hidden>✓</span> : null}
+          {isDone ? t(locale, "reopen") : t(locale, "markDone")}
         </Button>
         <Button
           variant="danger"
+          size="sm"
+          className="sm:ml-auto"
           onClick={() => {
+            if (
+              typeof window !== "undefined" &&
+              !window.confirm(t(locale, "deleteEvent") + " ?")
+            ) {
+              return;
+            }
             deleteEvent(event.id);
             router.push("/");
           }}
@@ -193,5 +236,28 @@ export function EventDetail({ eventId }: { eventId: string }) {
         </section>
       ) : null}
     </div>
+  );
+}
+
+function StatusChip({
+  done,
+  locale,
+  pulse,
+}: {
+  done: boolean;
+  locale: Parameters<typeof t>[0];
+  pulse: boolean;
+}) {
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium tracking-[0.06em] uppercase transition-colors duration-500 ${
+        done
+          ? "bg-[#e7f5ee] text-[#1f4d3a] ring-1 ring-[#2f6b4f]/20"
+          : "bg-accent-soft text-accent-deep ring-1 ring-accent/25"
+      } ${pulse ? "scale-105" : ""}`}
+    >
+      <span aria-hidden>{done ? "✓" : "●"}</span>
+      {done ? t(locale, "statusDone") : t(locale, "statusConfirmed")}
+    </span>
   );
 }
