@@ -14,8 +14,11 @@ import {
   addMenuItem,
   deleteMenuCategory,
   deleteMenuItem,
+  fillCategoryTranslations,
+  fillItemTranslations,
   getChildCategories,
   getRootCategories,
+  translateEntireMenu,
   updateMenuCategory,
   updateMenuItem,
 } from "@/lib/menu-store";
@@ -43,7 +46,23 @@ export function MenuExperience() {
   const { currency } = useCurrency();
   const [tab, setTab] = useState<MenuTab>("menus");
   const [addingSection, setAddingSection] = useState(false);
+  const [translating, setTranslating] = useState(false);
+  const [translateNote, setTranslateNote] = useState("");
   const roots = getRootCategories(categories);
+
+  async function runTranslate() {
+    setTranslating(true);
+    setTranslateNote(t(locale, "translating"));
+    try {
+      await translateEntireMenu(locale === "fr" ? "fr" : "hy");
+      setTranslateNote(t(locale, "translateDone"));
+    } catch {
+      setTranslateNote("");
+    } finally {
+      setTranslating(false);
+      window.setTimeout(() => setTranslateNote(""), 2500);
+    }
+  }
 
   return (
     <div className="animate-rise">
@@ -91,9 +110,14 @@ export function MenuExperience() {
               className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_100%_0%,rgba(196,92,106,0.1),transparent_50%)]"
             />
             <div className="relative flex flex-wrap items-end justify-between gap-4">
-              <p className="max-w-md text-sm text-muted">
-                {t(locale, "menuExtras")}
-              </p>
+              <div>
+                <p className="max-w-md text-sm text-muted">
+                  {t(locale, "menuExtras")}
+                </p>
+                {translateNote ? (
+                  <p className="mt-2 text-[12px] text-accent">{translateNote}</p>
+                ) : null}
+              </div>
               <div className="flex flex-wrap items-end gap-3">
                 <label className="flex min-w-0 flex-col gap-2">
                   <span className="label">{t(locale, "currency")}</span>
@@ -111,6 +135,16 @@ export function MenuExperience() {
                     ))}
                   </select>
                 </label>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={translating || roots.length === 0}
+                  onClick={runTranslate}
+                >
+                  {translating
+                    ? t(locale, "translating")
+                    : t(locale, "translateMenu")}
+                </Button>
                 <IconButton
                   label={t(locale, "addSection")}
                   onClick={() => setAddingSection((current) => !current)}
@@ -124,7 +158,11 @@ export function MenuExperience() {
                 label={t(locale, "section")}
                 locale={locale}
                 onSubmit={(name) => {
-                  addMenuCategory(name);
+                  const created = addMenuCategory(name);
+                  void fillCategoryTranslations(
+                    created.id,
+                    locale === "fr" ? "fr" : "hy",
+                  );
                   setAddingSection(false);
                 }}
                 onCancel={() => setAddingSection(false)}
@@ -191,7 +229,13 @@ function SectionBlock({
             name={category.name}
             size="lg"
             locale={locale}
-            onRename={(name) => updateMenuCategory(category.id, name)}
+            onRename={(name) => {
+              updateMenuCategory(category.id, name);
+              void fillCategoryTranslations(
+                category.id,
+                locale === "fr" ? "fr" : "hy",
+              );
+            }}
           />
           <IconButton
             variant="remove"
@@ -253,7 +297,11 @@ function SectionBlock({
           label={t(locale, "subsection")}
           locale={locale}
           onSubmit={(name) => {
-            addMenuCategory(name, category.id);
+            const created = addMenuCategory(name, category.id);
+            void fillCategoryTranslations(
+              created.id,
+              locale === "fr" ? "fr" : "hy",
+            );
             setAddingSub(false);
           }}
           onCancel={() => setAddingSub(false)}
@@ -304,7 +352,13 @@ function SubsectionBlock({
             name={category.name}
             size="md"
             locale={locale}
-            onRename={(name) => updateMenuCategory(category.id, name)}
+            onRename={(name) => {
+              updateMenuCategory(category.id, name);
+              void fillCategoryTranslations(
+                category.id,
+                locale === "fr" ? "fr" : "hy",
+              );
+            }}
           />
           <IconButton
             variant="remove"
@@ -456,7 +510,7 @@ function AddItemForm({
       onSubmit={(event) => {
         event.preventDefault();
         const data = new FormData(event.currentTarget);
-        addMenuItem({
+        const created = addMenuItem({
           categoryId,
           name: String(data.get("name") ?? ""),
           description: String(data.get("description") ?? ""),
@@ -464,6 +518,7 @@ function AddItemForm({
           priceUnit:
             (String(data.get("unit") ?? "portion") as PriceUnit) || "portion",
         });
+        void fillItemTranslations(created.id, locale === "fr" ? "fr" : "hy");
         onDone();
       }}
     >
@@ -542,6 +597,7 @@ function ItemRow({
                 (String(data.get("unit") ?? item.priceUnit) as PriceUnit) ||
                 item.priceUnit,
             });
+            void fillItemTranslations(item.id, locale === "fr" ? "fr" : "hy");
             setEditing(false);
           }}
         >

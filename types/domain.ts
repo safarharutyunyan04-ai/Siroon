@@ -2,13 +2,20 @@ export type PriceUnit = "unit" | "kg" | "portion";
 
 export type Currency = "AMD" | "USD" | "EUR" | "RUB";
 
-export type Locale = "hy" | "fr";
+export type Locale = "hy" | "fr" | "en" | "ru";
 
 export type MenuCategory = {
   id: string;
   name: string;
+  /** Translated names keyed by locale */
+  i18n: Partial<Record<Locale, string>>;
   parentId: string | null;
   sortOrder: number;
+};
+
+export type MenuItemI18n = {
+  name: string;
+  description: string;
 };
 
 export type MenuItem = {
@@ -16,6 +23,8 @@ export type MenuItem = {
   categoryId: string;
   name: string;
   description: string;
+  /** Translated name/description keyed by locale */
+  i18n: Partial<Record<Locale, MenuItemI18n>>;
   price: number;
   priceUnit: PriceUnit;
   active: boolean;

@@ -84,7 +84,10 @@ function read(): Settings {
         ? parsed.currency
         : defaults.currency;
     const locale =
-      parsed.locale === "hy" || parsed.locale === "fr"
+      parsed.locale === "hy" ||
+      parsed.locale === "fr" ||
+      parsed.locale === "en" ||
+      parsed.locale === "ru"
         ? parsed.locale
         : defaults.locale;
     const publicBaseUrl =

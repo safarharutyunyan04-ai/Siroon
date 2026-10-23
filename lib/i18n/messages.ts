@@ -7,9 +7,9 @@ export const locales: {
 }[] = [
   { id: "hy", label: "Հայերեն", intl: "hy-AM" },
   { id: "fr", label: "Français", intl: "fr-FR" },
+  { id: "en", label: "English", intl: "en-US" },
+  { id: "ru", label: "Русский", intl: "ru-RU" },
 ];
-
-export type MessageKey = keyof typeof messages.hy;
 
 const messages = {
   hy: {
@@ -174,6 +174,9 @@ const messages = {
     menuQrLocalhostWarn:
       "Localhost-ը հյուրերի հեռախոսներում չի աշխատի։ Մուտքագրեք տեղադրված կայքի URL-ը։",
     menuQrWaiting: "Մուտքագրեք հրապարակային URL",
+    translateMenu: "Թարգմանել (FR / EN / RU)",
+    translating: "Թարգմանվում է…",
+    translateDone: "Թարգմանությունը պատրաստ է",
   },
 
 
@@ -341,11 +344,65 @@ const messages = {
     menuQrLocalhostWarn:
       "Localhost ne marchera pas sur les téléphones des invités. Entrez l’URL du site déployé.",
     menuQrWaiting: "Entrez une URL publique",
+    translateMenu: "Traduire (FR / EN / RU)",
+    translating: "Traduction en cours…",
+    translateDone: "Traduction terminée",
+  },
+
+  en: {
+    navToday: "Today",
+    navPlanning: "Planning",
+    navMenu: "Menu",
+    navBilan: "Reports",
+    navScreen: "Screen",
+    navNewEvent: "New",
+    loading: "Loading…",
+    language: "Language",
+    guestMenuEyebrow: "Menu",
+    guestMenuLead: "Every detail for an unforgettable evening.",
+    guestMenuBrowse: "View the menu",
+    guestMenuEmpty: "The menu is still empty.",
+    guestMenuFooter: "Enjoy your meal",
+    guestMenuPreview: "Le Man menu",
+    printMenu: "Print",
+    menuTabMenus: "Menus",
+    menuTabCarte: "Menu card",
+    menuTabQr: "QR Code",
+    translateMenu: "Translate (FR / EN / RU)",
+    translating: "Translating…",
+    translateDone: "Translation complete",
+  },
+
+  ru: {
+    navToday: "Сегодня",
+    navPlanning: "План",
+    navMenu: "Меню",
+    navBilan: "Отчёты",
+    navScreen: "Экран",
+    navNewEvent: "Новый",
+    loading: "Загрузка…",
+    language: "Язык",
+    guestMenuEyebrow: "Меню",
+    guestMenuLead: "Каждая деталь для незабываемого вечера.",
+    guestMenuBrowse: "Смотреть меню",
+    guestMenuEmpty: "Меню пока пусто.",
+    guestMenuFooter: "Приятного аппетита",
+    guestMenuPreview: "Меню Le Man",
+    printMenu: "Печать",
+    menuTabMenus: "Меню",
+    menuTabCarte: "Карта",
+    menuTabQr: "QR-код",
+    translateMenu: "Перевести (FR / EN / RU)",
+    translating: "Перевод…",
+    translateDone: "Перевод готов",
   },
 } as const;
 
+export type MessageKey = keyof typeof messages.hy;
+
 export function t(locale: Locale, key: MessageKey) {
-  return messages[locale][key] ?? messages.fr[key] ?? key;
+  const pack = messages[locale] as Partial<Record<MessageKey, string>> | undefined;
+  return pack?.[key] ?? messages.fr[key] ?? messages.hy[key] ?? key;
 }
 
 export function getLocaleMeta(locale: Locale) {

@@ -6,9 +6,10 @@ import { GuestMenuPrint } from "@/components/carte/GuestMenuPrint";
 import { LeManLogo } from "@/components/brand/LeManLogo";
 import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
 import { buildGuestMenuSections } from "@/lib/guest-menu";
+import { categoryName, itemTexts } from "@/lib/menu-i18n";
 import { t } from "@/lib/i18n/messages";
 import { useLocale, useMenu } from "@/lib/hooks";
-import type { MenuItem } from "@/types/domain";
+import type { Locale, MenuItem } from "@/types/domain";
 
 export function GuestMenu() {
   const { locale } = useLocale();
@@ -96,7 +97,7 @@ export function GuestMenu() {
                     >
                       <header className="mb-9 text-center">
                         <h2 className="font-[family-name:var(--font-leman)] text-2xl tracking-[0.22em] text-[#d4b56a] uppercase sm:text-3xl">
-                          {category.name}
+                          {categoryName(category, locale)}
                         </h2>
                         <div
                           className="le-man-ornament mx-auto mt-4"
@@ -104,14 +105,16 @@ export function GuestMenu() {
                         />
                       </header>
 
-                      {direct.length > 0 ? <DishList items={direct} /> : null}
+                      {direct.length > 0 ? (
+                        <DishList items={direct} locale={locale} />
+                      ) : null}
 
                       {children.map(({ category: child, items: childItems }) => (
                         <div key={child.id} className="mt-12">
                           <h3 className="font-[family-name:var(--font-leman-script)] mb-6 text-center text-2xl text-[#f3eee6]/85 sm:text-3xl">
-                            {child.name}
+                            {categoryName(child, locale)}
                           </h3>
-                          <DishList items={childItems} />
+                          <DishList items={childItems} locale={locale} />
                         </div>
                       ))}
                     </section>
@@ -136,24 +139,33 @@ export function GuestMenu() {
   );
 }
 
-function DishList({ items }: { items: MenuItem[] }) {
+function DishList({
+  items,
+  locale,
+}: {
+  items: MenuItem[];
+  locale: Locale;
+}) {
   return (
     <ul className="mx-auto flex max-w-xl flex-col gap-0">
-      {items.map((item) => (
-        <li
-          key={item.id}
-          className="group border-b border-[#d4b56a]/12 py-4 text-center last:border-b-0"
-        >
-          <span className="font-[family-name:var(--font-leman-body)] text-[17px] leading-snug text-[#f3eee6]/92 transition-colors group-hover:text-[#d4b56a] sm:text-lg">
-            {item.name}
-          </span>
-          {item.description ? (
-            <span className="mt-1.5 block font-[family-name:var(--font-leman-body)] text-[13px] leading-relaxed text-[#f3eee6]/48 sm:text-sm">
-              {item.description}
+      {items.map((item) => {
+        const texts = itemTexts(item, locale);
+        return (
+          <li
+            key={item.id}
+            className="group border-b border-[#d4b56a]/12 py-4 text-center last:border-b-0"
+          >
+            <span className="font-[family-name:var(--font-leman-body)] text-[17px] leading-snug text-[#f3eee6]/92 transition-colors group-hover:text-[#d4b56a] sm:text-lg">
+              {texts.name}
             </span>
-          ) : null}
-        </li>
-      ))}
+            {texts.description ? (
+              <span className="mt-1.5 block font-[family-name:var(--font-leman-body)] text-[13px] leading-relaxed text-[#f3eee6]/48 sm:text-sm">
+                {texts.description}
+              </span>
+            ) : null}
+          </li>
+        );
+      })}
     </ul>
   );
 }
