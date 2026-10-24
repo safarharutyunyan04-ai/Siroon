@@ -40,7 +40,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             : "flex min-h-dvh flex-col"
         }
       >
-      <header className="sticky top-0 z-20 shrink-0 border-b border-border/70 bg-surface-raised/90 backdrop-blur-xl">
+      <header className="no-print sticky top-0 z-20 shrink-0 border-b border-border/70 bg-surface-raised/90 backdrop-blur-xl">
         <div className="mx-auto flex w-full max-w-6xl items-center gap-2 px-3 py-2.5 sm:gap-3 sm:px-5">
           <Link href="/" className="group flex shrink-0 items-center gap-2">
             <SiroonMark

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { OrderSheetPrint } from "@/components/events/OrderSheetPrint";
 import { Button } from "@/components/ui/Button";
 import { deleteEvent, updateEvent } from "@/lib/events-store";
 import { formatMoney, formatLongDate } from "@/lib/format";
@@ -58,6 +59,7 @@ export function EventDetail({ eventId }: { eventId: string }) {
 
   return (
     <div className="animate-rise">
+      <div className="no-print">
       <Link
         href="/planning"
         className="inline-flex text-[13px] font-medium text-muted transition-colors hover:text-foreground"
@@ -144,7 +146,10 @@ export function EventDetail({ eventId }: { eventId: string }) {
       </section>
 
       <div className="mt-6 flex flex-col gap-3 sm:mt-8 sm:flex-row sm:flex-wrap sm:items-center">
-        <Button href={`/events/${event.id}/edit`} size="lg">
+        <Button size="lg" onClick={() => window.print()}>
+          {t(locale, "printOrder")}
+        </Button>
+        <Button href={`/events/${event.id}/edit`} variant="secondary" size="lg">
           {t(locale, "edit")}
         </Button>
         <Button
@@ -224,6 +229,14 @@ export function EventDetail({ eventId }: { eventId: string }) {
           <p className="mt-3 max-w-xl text-sm leading-relaxed">{event.notes}</p>
         </section>
       ) : null}
+      </div>
+
+      <OrderSheetPrint
+        event={event}
+        quote={quote}
+        locale={locale}
+        currency={currency}
+      />
     </div>
   );
 }

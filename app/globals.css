@@ -478,6 +478,266 @@ body {
   color: #8a8178;
 }
 
+.order-print {
+  display: none;
+}
+
+.order-print-header {
+  text-align: center;
+  margin-bottom: 1.75rem;
+  padding-bottom: 1rem;
+}
+
+.order-print-eyebrow {
+  margin: 0;
+  font-size: 9pt;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: #a8873d;
+}
+
+.order-print-brand {
+  margin: 0.55rem 0 0;
+  font-family: var(--font-leman), Georgia, serif;
+  font-size: 26pt;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #1a1510;
+}
+
+.order-print-script {
+  margin: 0.2rem 0 0;
+  font-family: var(--font-leman-script), Georgia, cursive;
+  font-size: 16pt;
+  color: #8a6f2e;
+}
+
+.order-print-lead {
+  margin: 0.9rem auto 0;
+  max-width: 26rem;
+  font-family: var(--font-leman-body), Georgia, serif;
+  font-size: 10.5pt;
+  line-height: 1.5;
+  color: #5f5750;
+}
+
+.order-print-ornament {
+  position: relative;
+  width: 5.5rem;
+  height: 1px;
+  margin: 0.85rem auto 0;
+  background: linear-gradient(90deg, transparent, #d4b56a, transparent);
+}
+
+.order-print-ornament::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  border: 1px solid #d4b56a;
+  background: #fffaf2;
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.order-print-meta {
+  margin: 1.35rem 0 0.35rem;
+  text-align: center;
+}
+
+.order-print-title {
+  margin: 0;
+  font-family: var(--font-leman), Georgia, serif;
+  font-size: 16pt;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #1a1510;
+}
+
+.order-print-contact {
+  margin: 0.35rem 0 0;
+  font-family: var(--font-leman-body), Georgia, serif;
+  font-size: 11pt;
+  color: #5f5750;
+}
+
+.order-print-details {
+  margin: 0.45rem 0 0;
+  font-family: var(--font-leman-body), Georgia, serif;
+  font-size: 10pt;
+  color: #6e655c;
+}
+
+.order-print-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+  margin-top: 1.25rem;
+}
+
+.order-print-section {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.order-print-section h3 {
+  margin: 0 0 0.45rem;
+  font-family: var(--font-leman), Georgia, serif;
+  font-size: 10pt;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #a8873d;
+}
+
+.order-print-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.order-print-list li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0.4rem 0;
+}
+
+.order-print-dish {
+  flex-shrink: 0;
+  max-width: 70%;
+  font-family: var(--font-leman-body), Georgia, serif;
+  font-size: 11pt;
+  line-height: 1.35;
+  color: #1a1510;
+}
+
+.order-print-dots {
+  flex: 1 1 auto;
+  min-width: 1.25rem;
+  border-bottom: 1px dotted rgba(168, 135, 61, 0.45);
+  transform: translateY(-0.25em);
+}
+
+.order-print-qty {
+  flex-shrink: 0;
+  font-family: var(--font-leman-body), Georgia, serif;
+  font-size: 10pt;
+  font-variant-numeric: tabular-nums;
+  color: #5f5750;
+}
+
+.order-print-empty {
+  text-align: center;
+  font-family: var(--font-leman-body), Georgia, serif;
+  font-size: 11pt;
+  color: #8a8178;
+}
+
+.order-print-notes {
+  margin-top: 1.35rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid rgba(212, 181, 106, 0.35);
+  break-inside: avoid;
+}
+
+.order-print-notes-label {
+  margin: 0;
+  font-size: 8pt;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #a8873d;
+}
+
+.order-print-notes-body {
+  margin: 0.4rem 0 0;
+  font-family: var(--font-leman-body), Georgia, serif;
+  font-size: 10pt;
+  line-height: 1.45;
+  color: #5f5750;
+  white-space: pre-wrap;
+}
+
+.order-print-total-block {
+  margin-top: 1.5rem;
+  break-inside: avoid;
+}
+
+.order-print-totals {
+  margin: 1rem auto 0;
+  max-width: 18rem;
+}
+
+.order-print-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-family: var(--font-leman-body), Georgia, serif;
+  font-size: 10pt;
+  color: #6e655c;
+  padding: 0.2rem 0;
+}
+
+.order-print-total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0.85rem auto 0;
+  max-width: 18rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid #d4b56a;
+  font-family: var(--font-leman), Georgia, serif;
+  font-size: 12pt;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #1a1510;
+}
+
+.order-print-total strong {
+  font-size: 14pt;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.order-print-footer {
+  margin-top: 2rem;
+  padding-top: 0.35rem;
+  text-align: center;
+  break-inside: avoid;
+}
+
+.order-print-brand-sm {
+  margin: 0.65rem 0 0;
+  font-family: var(--font-leman), Georgia, serif;
+  font-size: 11pt;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: #a8873d;
+}
+
+.order-print-script-sm {
+  margin: 0.15rem 0 0;
+  font-family: var(--font-leman-script), Georgia, cursive;
+  font-size: 13pt;
+  color: #5f5750;
+}
+
+.order-print-thanks {
+  margin: 0.55rem 0 0;
+  text-align: center;
+  font-size: 8pt;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #8a8178;
+}
+
 @media print {
   @page {
     margin: 14mm 16mm;
@@ -491,9 +751,10 @@ body {
   body {
     background: #fffaf2 !important;
     color: #1a1510 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
-  header,
   .no-print,
   .le-man-screen {
     display: none !important;
@@ -505,7 +766,8 @@ body {
     margin: 0 !important;
   }
 
-  .carte-print {
+  .carte-print,
+  .order-print {
     display: block !important;
     background: #fffaf2;
     color: #1a1510;

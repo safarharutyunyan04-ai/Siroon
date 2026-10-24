@@ -393,6 +393,32 @@ function MenuLine({
   onChange: (quantity: number) => void;
 }) {
   const selected = quantity > 0;
+  const step = item.priceUnit === "kg" ? 0.5 : 1;
+  const [draft, setDraft] = useState<string | null>(null);
+
+  const display =
+    draft !== null ? draft : quantity > 0 ? String(quantity) : "";
+
+  function applyQty(next: number) {
+    const value = Math.max(0, next);
+    onChange(value);
+    if (draft !== null) setDraft(value > 0 ? String(value) : "");
+  }
+
+  function commitQty(raw: string) {
+    const normalized = raw.replace(",", ".").trim();
+    if (normalized === "" || normalized === ".") {
+      onChange(0);
+      return;
+    }
+    const parsed = Number(normalized);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      onChange(0);
+      return;
+    }
+    onChange(item.priceUnit === "kg" ? parsed : Math.round(parsed));
+  }
+
   return (
     <li
       className={`flex flex-wrap items-center justify-between gap-4 border-t border-border py-4 ${
@@ -410,30 +436,44 @@ function MenuLine({
           type="button"
           aria-label={t(locale, "less")}
           className="flex h-8 w-8 items-center justify-center rounded-[8px] text-muted hover:text-foreground"
-          onClick={() =>
-            onChange(
-              Math.max(0, quantity - (item.priceUnit === "kg" ? 0.5 : 1)),
-            )
-          }
+          onClick={() => applyQty(quantity - step)}
         >
           −
         </button>
         <input
-          type="number"
-          min={0}
-          step={item.priceUnit === "kg" ? 0.5 : 1}
-          value={quantity || ""}
+          type="text"
+          inputMode={item.priceUnit === "kg" ? "decimal" : "numeric"}
+          pattern={item.priceUnit === "kg" ? "[0-9]*[.,]?[0-9]*" : "[0-9]*"}
+          value={display}
           placeholder="0"
-          onChange={(change) => onChange(Number(change.target.value) || 0)}
-          className="w-16 border-b border-border bg-transparent py-1 text-center text-sm tabular-nums outline-none focus:border-foreground"
+          aria-label={item.name}
+          onFocus={(change) => {
+            setDraft(quantity > 0 ? String(quantity) : "");
+            change.currentTarget.select();
+          }}
+          onChange={(change) => {
+            const raw = change.target.value.replace(",", ".");
+            if (raw !== "" && !/^\d*\.?\d*$/.test(raw)) return;
+            setDraft(raw);
+            if (raw === "" || raw === ".") {
+              onChange(0);
+              return;
+            }
+            const parsed = Number(raw);
+            if (!Number.isFinite(parsed) || parsed < 0) return;
+            onChange(item.priceUnit === "kg" ? parsed : Math.round(parsed));
+          }}
+          onBlur={() => {
+            commitQty(draft ?? display);
+            setDraft(null);
+          }}
+          className="h-8 w-[4.25rem] rounded-[8px] border border-border bg-surface-raised px-1 text-center text-sm tabular-nums outline-none focus:border-foreground"
         />
         <button
           type="button"
           aria-label={t(locale, "more")}
           className="flex h-8 w-8 items-center justify-center rounded-[8px] text-muted hover:text-foreground"
-          onClick={() =>
-            onChange(quantity + (item.priceUnit === "kg" ? 0.5 : 1))
-          }
+          onClick={() => applyQty(quantity + step)}
         >
           +
         </button>
