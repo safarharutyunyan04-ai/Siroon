@@ -45,6 +45,7 @@ html {
   scroll-behavior: smooth;
   overflow-x: clip;
   color-scheme: light;
+  font-size: 112.5%; /* 18px base — a bit larger site-wide */
 }
 
 body {
@@ -63,6 +64,8 @@ body {
     ui-sans-serif,
     system-ui,
     sans-serif;
+  font-size: 1rem;
+  line-height: 1.55;
 }
 
 .font-display {
@@ -90,7 +93,7 @@ body {
 }
 
 .label {
-  font-size: 11px;
+  font-size: 0.75rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--teal);
