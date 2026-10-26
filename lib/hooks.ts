@@ -113,7 +113,7 @@ export function useCurrency() {
     ensureSettings();
   }, []);
 
-  return { currency: settings.currency, ready };
+  return { currency: "AMD" as const, ready };
 }
 
 export function useLocale() {

@@ -64,13 +64,7 @@ export function subscribeSettingsTable(onChange: () => void) {
 }
 
 function rowToSettings(row: SettingsRow): RemoteSettings {
-  const currency =
-    row.currency === "AMD" ||
-    row.currency === "USD" ||
-    row.currency === "EUR" ||
-    row.currency === "RUB"
-      ? row.currency
-      : "AMD";
+  const currency = "AMD" as const;
   const locale =
     row.locale === "hy" ||
     row.locale === "fr" ||

@@ -57,9 +57,10 @@ export function ensureSettings() {
   void bootstrapRemote();
 }
 
-export function setCurrency(currency: Currency) {
+export function setCurrency(_currency?: Currency) {
   hydrate();
-  settings = { ...settings, currency };
+  if (settings.currency === "AMD") return;
+  settings = { ...settings, currency: "AMD" };
   emit(true);
   void upsertSettings(settings);
 }
@@ -98,13 +99,7 @@ function read(): Settings {
 }
 
 function normalizeSettings(parsed: Partial<Settings>): Settings {
-  const currency =
-    parsed.currency === "AMD" ||
-    parsed.currency === "USD" ||
-    parsed.currency === "EUR" ||
-    parsed.currency === "RUB"
-      ? parsed.currency
-      : defaults.currency;
+  const currency = defaults.currency;
   const locale =
     parsed.locale === "hy" ||
     parsed.locale === "fr" ||
