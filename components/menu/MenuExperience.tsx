@@ -222,7 +222,7 @@ export function MenuExperience() {
                           setDragId(null);
                           setDragOverId(null);
                         }}
-                        className={`relative flex h-72 w-72 shrink-0 flex-col rounded-[20px] border bg-[linear-gradient(160deg,#fffaf8_0%,#faf0f2_100%)] shadow-[0_8px_24px_rgba(26,21,16,0.04)] transition-[transform,border-color,box-shadow,opacity] duration-[var(--duration)] sm:h-80 sm:w-80 ${
+                        className={`relative flex h-[15.3rem] w-[15.3rem] shrink-0 flex-col rounded-[18px] border bg-[linear-gradient(160deg,#fffaf8_0%,#faf0f2_100%)] shadow-[0_8px_24px_rgba(26,21,16,0.04)] transition-[transform,border-color,box-shadow,opacity] duration-[var(--duration)] sm:h-[17rem] sm:w-[17rem] ${
                           isDragging
                             ? "border-accent/50 opacity-55"
                             : isOver
@@ -230,7 +230,7 @@ export function MenuExperience() {
                               : "border-border/80 hover:-translate-y-0.5 hover:border-accent/35 hover:shadow-[0_12px_28px_rgba(163,68,84,0.12)]"
                         }`}
                       >
-                        <div className="flex items-center justify-between px-4 pt-4 sm:px-5 sm:pt-5">
+                        <div className="flex items-center justify-between px-3.5 pt-3.5 sm:px-4 sm:pt-4">
                           <span className="label text-muted/80">
                             {String(index + 1).padStart(2, "0")}
                           </span>
@@ -243,7 +243,7 @@ export function MenuExperience() {
                                 event.stopPropagation();
                                 moveRootCategory(category.id, -1);
                               }}
-                              className="flex h-9 w-9 items-center justify-center rounded-[10px] text-lg text-muted transition-colors hover:bg-white/80 hover:text-foreground disabled:opacity-25"
+                              className="flex h-8 w-8 items-center justify-center rounded-[9px] text-base text-muted transition-colors hover:bg-white/80 hover:text-foreground disabled:opacity-25"
                             >
                               ‹
                             </button>
@@ -255,7 +255,7 @@ export function MenuExperience() {
                                 event.stopPropagation();
                                 moveRootCategory(category.id, 1);
                               }}
-                              className="flex h-9 w-9 items-center justify-center rounded-[10px] text-lg text-muted transition-colors hover:bg-white/80 hover:text-foreground disabled:opacity-25"
+                              className="flex h-8 w-8 items-center justify-center rounded-[9px] text-base text-muted transition-colors hover:bg-white/80 hover:text-foreground disabled:opacity-25"
                             >
                               ›
                             </button>
@@ -264,12 +264,12 @@ export function MenuExperience() {
                         <button
                           type="button"
                           onClick={() => setSectionId(category.id)}
-                          className="flex min-h-0 flex-1 flex-col justify-end p-5 pt-2 text-left sm:p-6 sm:pt-2"
+                          className="flex min-h-0 flex-1 flex-col justify-end p-4 pt-2 text-left sm:p-5 sm:pt-2"
                         >
-                          <span className="font-display line-clamp-3 text-2xl font-medium tracking-tight text-foreground sm:text-3xl">
+                          <span className="font-display line-clamp-3 text-xl font-medium tracking-tight text-foreground sm:text-2xl">
                             {category.name}
                           </span>
-                          <span className="mt-3 block text-sm text-muted">
+                          <span className="mt-2.5 block text-sm text-muted">
                             {count}{" "}
                             {count === 1
                               ? t(locale, "menuItemOne")
@@ -283,9 +283,9 @@ export function MenuExperience() {
                   <button
                     type="button"
                     onClick={() => setAddingSection(true)}
-                    className="flex h-72 w-72 shrink-0 flex-col items-center justify-center gap-3 rounded-[20px] border border-dashed border-border/90 bg-white/50 text-muted transition-[transform,border-color,color,background-color] duration-[var(--duration)] hover:-translate-y-0.5 hover:border-accent/40 hover:bg-accent-soft/40 hover:text-foreground sm:h-80 sm:w-80"
+                    className="flex h-[15.3rem] w-[15.3rem] shrink-0 flex-col items-center justify-center gap-3 rounded-[18px] border border-dashed border-border/90 bg-white/50 text-muted transition-[transform,border-color,color,background-color] duration-[var(--duration)] hover:-translate-y-0.5 hover:border-accent/40 hover:bg-accent-soft/40 hover:text-foreground sm:h-[17rem] sm:w-[17rem]"
                   >
-                    <span className="flex h-14 w-14 items-center justify-center rounded-full border border-current text-3xl leading-none">
+                    <span className="flex h-12 w-12 items-center justify-center rounded-full border border-current text-3xl leading-none">
                       +
                     </span>
                     <span className="px-3 text-center text-sm font-medium tracking-[0.04em]">
