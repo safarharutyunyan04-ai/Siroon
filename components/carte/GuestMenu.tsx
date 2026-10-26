@@ -79,7 +79,7 @@ export function GuestMenu() {
                   {t(locale, "guestMenuEmpty")}
                 </p>
               ) : (
-                <div className="flex flex-col gap-20 sm:gap-24">
+                <div className="flex flex-col gap-16 sm:gap-20">
                   {roots.map(({ category, direct, children }, index) => (
                     <section
                       key={category.id}
@@ -88,12 +88,22 @@ export function GuestMenu() {
                         animationDelay: `${Math.min(index, 6) * 70}ms`,
                       }}
                     >
-                      <header className="mb-9 text-center">
-                        <h2 className="font-[family-name:var(--font-leman)] text-2xl tracking-[0.22em] text-[#d4b56a] uppercase sm:text-3xl">
+                      {index > 0 ? (
+                        <div
+                          className="le-man-section-divider mx-auto mb-16 sm:mb-20"
+                          aria-hidden
+                        />
+                      ) : null}
+
+                      <header className="mb-10 text-center sm:mb-12">
+                        <p className="font-[family-name:var(--font-leman)] text-[10px] tracking-[0.42em] text-[#d4b56a]/55 uppercase">
+                          {String(index + 1).padStart(2, "0")}
+                        </p>
+                        <h2 className="font-[family-name:var(--font-leman)] mt-3 text-2xl tracking-[0.22em] text-[#d4b56a] uppercase sm:text-3xl">
                           {categoryName(category, locale)}
                         </h2>
                         <div
-                          className="le-man-ornament mx-auto mt-4"
+                          className="le-man-ornament mx-auto mt-5"
                           aria-hidden
                         />
                       </header>
@@ -102,14 +112,36 @@ export function GuestMenu() {
                         <DishList items={direct} locale={locale} />
                       ) : null}
 
-                      {children.map(({ category: child, items: childItems }) => (
-                        <div key={child.id} className="mt-12">
-                          <h3 className="font-[family-name:var(--font-leman-script)] mb-6 text-center text-2xl text-[#f3eee6]/85 sm:text-3xl">
-                            {categoryName(child, locale)}
-                          </h3>
-                          <DishList items={childItems} locale={locale} />
+                      {children.length > 0 ? (
+                        <div
+                          className={`flex flex-col gap-14 sm:gap-16 ${
+                            direct.length > 0 ? "mt-14 sm:mt-16" : ""
+                          }`}
+                        >
+                          {children.map(
+                            ({ category: child, items: childItems }) => (
+                              <div
+                                key={child.id}
+                                className="le-man-subsection"
+                              >
+                                <header className="mb-7 text-center sm:mb-8">
+                                  <div
+                                    className="le-man-subsection-rule mx-auto"
+                                    aria-hidden
+                                  />
+                                  <h3 className="font-[family-name:var(--font-leman-script)] mt-4 text-[1.65rem] leading-none text-[#f3eee6]/88 sm:text-[1.9rem]">
+                                    {categoryName(child, locale)}
+                                  </h3>
+                                </header>
+                                <DishList
+                                  items={childItems}
+                                  locale={locale}
+                                />
+                              </div>
+                            ),
+                          )}
                         </div>
-                      ))}
+                      ) : null}
                     </section>
                   ))}
                 </div>

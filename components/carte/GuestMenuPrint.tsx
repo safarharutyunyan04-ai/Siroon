@@ -24,8 +24,11 @@ export function GuestMenuPrint({
         <p className="carte-print-empty">{t(locale, "guestMenuEmpty")}</p>
       ) : (
         <div className="carte-print-sections">
-          {sections.map(({ category, direct, children }) => (
+          {sections.map(({ category, direct, children }, index) => (
             <section key={category.id} className="carte-print-section">
+              <p className="carte-print-index">
+                {String(index + 1).padStart(2, "0")}
+              </p>
               <h2>{categoryName(category, locale)}</h2>
               <div className="carte-print-ornament" aria-hidden />
               {direct.length > 0 ? (
@@ -33,6 +36,7 @@ export function GuestMenuPrint({
               ) : null}
               {children.map(({ category: child, items }) => (
                 <div key={child.id} className="carte-print-child">
+                  <div className="carte-print-child-rule" aria-hidden />
                   <h3>{categoryName(child, locale)}</h3>
                   <PrintDishList items={items} locale={locale} />
                 </div>

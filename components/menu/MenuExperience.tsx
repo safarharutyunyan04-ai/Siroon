@@ -40,15 +40,29 @@ function currencyLabel(id: Currency, locale: Locale) {
   return t(locale, "ruble");
 }
 
+function sectionItems(
+  categoryId: string,
+  categories: MenuCategory[],
+  items: MenuItem[],
+) {
+  const childIds = getChildCategories(categories, categoryId).map(
+    (child) => child.id,
+  );
+  const allowed = new Set([categoryId, ...childIds]);
+  return items.filter((item) => allowed.has(item.categoryId));
+}
+
 export function MenuExperience() {
   const { locale } = useLocale();
   const { items, categories, ready } = useMenu();
   const { currency } = useCurrency();
   const [tab, setTab] = useState<MenuTab>("menus");
+  const [sectionId, setSectionId] = useState<string | null>(null);
   const [addingSection, setAddingSection] = useState(false);
   const [translating, setTranslating] = useState(false);
   const [translateNote, setTranslateNote] = useState("");
   const roots = getRootCategories(categories);
+  const selected = roots.find((category) => category.id === sectionId) ?? null;
 
   async function runTranslate() {
     setTranslating(true);
@@ -73,7 +87,10 @@ export function MenuExperience() {
         <div className="flex max-w-full gap-1 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <button
             type="button"
-            onClick={() => setTab("menus")}
+            onClick={() => {
+              setTab("menus");
+              setSectionId(null);
+            }}
             className={`shrink-0 rounded-[10px] px-3 py-2 text-[12px] font-medium transition-all duration-[var(--duration)] ${
               tab === "menus"
                 ? "bg-accent text-ink"
@@ -103,99 +120,132 @@ export function MenuExperience() {
       </div>
 
       {tab === "menus" ? (
-        <div className="mt-6">
-          <div className="panel relative overflow-hidden px-4 py-6 sm:px-7 sm:py-7">
-            <div
-              aria-hidden
-              className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_100%_0%,rgba(196,92,106,0.1),transparent_50%)]"
-            />
-            <div className="relative flex flex-wrap items-end justify-between gap-4">
-              <div>
-                <p className="max-w-md text-sm text-muted">
-                  {t(locale, "menuExtras")}
-                </p>
-                {translateNote ? (
-                  <p className="mt-2 text-[12px] text-accent">{translateNote}</p>
-                ) : null}
-              </div>
-              <div className="flex flex-wrap items-end gap-3">
-                <label className="flex min-w-0 flex-col gap-2">
-                  <span className="label">{t(locale, "currency")}</span>
-                  <select
-                    value={currency}
-                    onChange={(change) =>
-                      setCurrency(change.target.value as Currency)
-                    }
-                    className="min-w-[7.5rem] max-w-full border-b border-border bg-transparent py-2 text-sm outline-none focus:border-foreground"
-                  >
-                    {currencies.map((entry) => (
-                      <option key={entry.id} value={entry.id}>
-                        {currencyLabel(entry.id, locale)} ({entry.symbol})
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  disabled={translating || roots.length === 0}
-                  onClick={runTranslate}
-                >
-                  {translating
-                    ? t(locale, "translating")
-                    : t(locale, "translateMenu")}
-                </Button>
-                <IconButton
-                  label={t(locale, "addSection")}
-                  onClick={() => setAddingSection((current) => !current)}
-                >
-                  +
-                </IconButton>
-              </div>
-            </div>
-            {addingSection ? (
-              <NameForm
-                label={t(locale, "section")}
-                locale={locale}
-                onSubmit={(name) => {
-                  const created = addMenuCategory(name);
-                  void fillCategoryTranslations(
-                    created.id,
-                    locale === "fr" ? "fr" : "hy",
-                  );
-                  setAddingSection(false);
-                }}
-                onCancel={() => setAddingSection(false)}
+        selected ? (
+          <SectionDetail
+            category={selected}
+            categories={categories}
+            items={items}
+            currency={currency}
+            locale={locale}
+            onBack={() => setSectionId(null)}
+            onDeleted={() => setSectionId(null)}
+          />
+        ) : (
+          <div className="mt-6">
+            <div className="panel relative overflow-hidden px-4 py-6 sm:px-7 sm:py-7">
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_100%_0%,rgba(196,92,106,0.1),transparent_50%)]"
               />
-            ) : null}
-          </div>
-
-          {!ready ? (
-            <p className="mt-8 text-sm text-muted">{t(locale, "loading")}</p>
-          ) : roots.length === 0 ? (
-            <div className="mt-8">
-              <IconButton
-                label={t(locale, "addSection")}
-                onClick={() => setAddingSection(true)}
-              >
-                +
-              </IconButton>
-            </div>
-          ) : (
-            <div className="mt-8 flex flex-col gap-10 sm:mt-10 sm:gap-12">
-              {roots.map((category) => (
-                <SectionBlock
-                  key={category.id}
-                  category={category}
-                  categories={categories}
-                  items={items}
-                  currency={currency}
+              <div className="relative flex flex-wrap items-end justify-between gap-4">
+                <div>
+                  <p className="max-w-md text-sm text-muted">
+                    {t(locale, "menuSectionsHint")}
+                  </p>
+                  {translateNote ? (
+                    <p className="mt-2 text-[12px] text-accent">
+                      {translateNote}
+                    </p>
+                  ) : null}
+                </div>
+                <div className="flex flex-wrap items-end gap-3">
+                  <label className="flex min-w-0 flex-col gap-2">
+                    <span className="label">{t(locale, "currency")}</span>
+                    <select
+                      value={currency}
+                      onChange={(change) =>
+                        setCurrency(change.target.value as Currency)
+                      }
+                      className="min-w-[7.5rem] max-w-full border-b border-border bg-transparent py-2 text-sm outline-none focus:border-foreground"
+                    >
+                      {currencies.map((entry) => (
+                        <option key={entry.id} value={entry.id}>
+                          {currencyLabel(entry.id, locale)} ({entry.symbol})
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    disabled={translating || roots.length === 0}
+                    onClick={runTranslate}
+                  >
+                    {translating
+                      ? t(locale, "translating")
+                      : t(locale, "translateMenu")}
+                  </Button>
+                </div>
+              </div>
+              {addingSection ? (
+                <NameForm
+                  label={t(locale, "section")}
                   locale={locale}
+                  onSubmit={(name) => {
+                    const created = addMenuCategory(name);
+                    void fillCategoryTranslations(
+                      created.id,
+                      locale === "fr" ? "fr" : "hy",
+                    );
+                    setAddingSection(false);
+                    setSectionId(created.id);
+                  }}
+                  onCancel={() => setAddingSection(false)}
                 />
-              ))}
+              ) : null}
             </div>
-          )}
-        </div>
+
+            {!ready ? (
+              <p className="mt-8 text-sm text-muted">{t(locale, "loading")}</p>
+            ) : (
+              <div className="mt-8 grid grid-cols-2 gap-3 sm:mt-10 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+                {roots.map((category, index) => {
+                  const count = sectionItems(
+                    category.id,
+                    categories,
+                    items,
+                  ).length;
+                  return (
+                    <button
+                      key={category.id}
+                      type="button"
+                      onClick={() => setSectionId(category.id)}
+                      className="group flex aspect-square flex-col justify-between rounded-[16px] border border-border/80 bg-[linear-gradient(160deg,#fffaf8_0%,#faf0f2_100%)] p-4 text-left shadow-[0_8px_24px_rgba(26,21,16,0.04)] transition-[transform,border-color,box-shadow] duration-[var(--duration)] hover:-translate-y-0.5 hover:border-accent/35 hover:shadow-[0_12px_28px_rgba(163,68,84,0.12)] sm:p-5"
+                    >
+                      <span className="label text-muted/80">
+                        {String(index + 1).padStart(2, "0")}
+                      </span>
+                      <div>
+                        <span className="font-display text-lg font-medium tracking-tight text-foreground sm:text-xl">
+                          {category.name}
+                        </span>
+                        <span className="mt-2 block text-[12px] text-muted">
+                          {count}{" "}
+                          {count === 1
+                            ? t(locale, "menuItemOne")
+                            : t(locale, "menuItemMany")}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+
+                <button
+                  type="button"
+                  onClick={() => setAddingSection(true)}
+                  className="flex aspect-square flex-col items-center justify-center gap-2 rounded-[16px] border border-dashed border-border/90 bg-white/50 text-muted transition-[transform,border-color,color,background-color] duration-[var(--duration)] hover:-translate-y-0.5 hover:border-accent/40 hover:bg-accent-soft/40 hover:text-foreground"
+                >
+                  <span className="flex h-10 w-10 items-center justify-center rounded-full border border-current text-2xl leading-none">
+                    +
+                  </span>
+                  <span className="text-[12px] font-medium tracking-[0.04em]">
+                    {t(locale, "addSection")}
+                  </span>
+                </button>
+              </div>
+            )}
+          </div>
+        )
       ) : null}
 
       {tab === "qr" ? <MenuQrCode className="mt-6" /> : null}
@@ -203,202 +253,105 @@ export function MenuExperience() {
   );
 }
 
-function SectionBlock({
+function SectionDetail({
   category,
   categories,
   items,
   currency,
   locale,
+  onBack,
+  onDeleted,
 }: {
   category: MenuCategory;
   categories: MenuCategory[];
   items: MenuItem[];
   currency: Currency;
   locale: Locale;
+  onBack: () => void;
+  onDeleted: () => void;
 }) {
   const [openItem, setOpenItem] = useState(false);
-  const [addingSub, setAddingSub] = useState(false);
-  const children = getChildCategories(categories, category.id);
-  const directItems = items.filter((item) => item.categoryId === category.id);
+  const list = sectionItems(category.id, categories, items);
 
   return (
-    <section>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-1">
-          <CategoryTitle
-            name={category.name}
-            size="lg"
+    <div className="mt-6 animate-rise">
+      <button
+        type="button"
+        onClick={onBack}
+        className="inline-flex text-[13px] font-medium text-muted transition-colors hover:text-foreground"
+      >
+        ← {t(locale, "back")}
+      </button>
+
+      <section className="panel mt-5 overflow-hidden px-5 py-6 sm:mt-6 sm:px-7 sm:py-8">
+        <header className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="label">{t(locale, "section")}</p>
+            <div className="mt-2 flex min-w-0 items-center gap-1">
+              <CategoryTitle
+                name={category.name}
+                locale={locale}
+                onRename={(name) => {
+                  updateMenuCategory(category.id, name);
+                  void fillCategoryTranslations(
+                    category.id,
+                    locale === "fr" ? "fr" : "hy",
+                  );
+                }}
+              />
+              <IconButton
+                variant="remove"
+                label={t(locale, "deleteSection")}
+                onClick={() => {
+                  if (
+                    typeof window !== "undefined" &&
+                    !window.confirm(t(locale, "deleteSection") + " ?")
+                  ) {
+                    return;
+                  }
+                  deleteMenuCategory(category.id);
+                  onDeleted();
+                }}
+              >
+                ×
+              </IconButton>
+            </div>
+            <div className="menu-section-rule mt-4" aria-hidden />
+          </div>
+          {!openItem ? (
+            <Button
+              type="button"
+              onClick={() => setOpenItem(true)}
+            >
+              {t(locale, "addItem")}
+            </Button>
+          ) : null}
+        </header>
+
+        {list.length > 0 ? (
+          <ul className="mt-2 flex flex-col">
+            {list.map((item) => (
+              <ItemRow
+                key={item.id}
+                item={item}
+                currency={currency}
+                locale={locale}
+              />
+            ))}
+          </ul>
+        ) : !openItem ? (
+          <p className="mt-8 text-sm text-muted">{t(locale, "menuSectionEmpty")}</p>
+        ) : null}
+
+        {openItem ? (
+          <AddItemForm
+            categoryId={category.id}
+            currency={currency}
             locale={locale}
-            onRename={(name) => {
-              updateMenuCategory(category.id, name);
-              void fillCategoryTranslations(
-                category.id,
-                locale === "fr" ? "fr" : "hy",
-              );
-            }}
+            onDone={() => setOpenItem(false)}
           />
-          <IconButton
-            variant="remove"
-            label={t(locale, "deleteSection")}
-            onClick={() => deleteMenuCategory(category.id)}
-          >
-            ×
-          </IconButton>
-        </div>
-        <IconButton
-          label={t(locale, "addItem")}
-          onClick={() => {
-            setOpenItem((current) => !current);
-            setAddingSub(false);
-          }}
-        >
-          +
-        </IconButton>
-      </div>
-
-      {openItem ? (
-        <AddItemForm
-          categoryId={category.id}
-          currency={currency}
-          locale={locale}
-          onDone={() => setOpenItem(false)}
-        />
-      ) : null}
-
-      {directItems.length > 0 ? (
-        <ul className="mt-5 flex flex-col">
-          {directItems.map((item) => (
-            <ItemRow
-              key={item.id}
-              item={item}
-              currency={currency}
-              locale={locale}
-            />
-          ))}
-        </ul>
-      ) : null}
-
-      {children.length > 0 ? (
-        <div className="mt-8 flex flex-col gap-8 border-l border-border/80 pl-5 sm:pl-7">
-          {children.map((child) => (
-            <SubsectionBlock
-              key={child.id}
-              category={child}
-              items={items}
-              currency={currency}
-              locale={locale}
-            />
-          ))}
-        </div>
-      ) : null}
-
-      {addingSub ? (
-        <NameForm
-          label={t(locale, "subsection")}
-          locale={locale}
-          onSubmit={(name) => {
-            const created = addMenuCategory(name, category.id);
-            void fillCategoryTranslations(
-              created.id,
-              locale === "fr" ? "fr" : "hy",
-            );
-            setAddingSub(false);
-          }}
-          onCancel={() => setAddingSub(false)}
-        />
-      ) : (
-        <div className="mt-6 border-t border-dashed border-border/80 pt-4">
-          <Button
-            variant="ghost"
-            onClick={() => {
-              setAddingSub(true);
-              setOpenItem(false);
-            }}
-          >
-            + {t(locale, "addSubsection")}
-          </Button>
-        </div>
-      )}
-
-      {directItems.length === 0 &&
-      children.length === 0 &&
-      !openItem &&
-      !addingSub ? (
-        <p className="mt-2 text-sm text-muted">—</p>
-      ) : null}
-    </section>
-  );
-}
-
-function SubsectionBlock({
-  category,
-  items,
-  currency,
-  locale,
-}: {
-  category: MenuCategory;
-  items: MenuItem[];
-  currency: Currency;
-  locale: Locale;
-}) {
-  const [openItem, setOpenItem] = useState(false);
-  const categoryItems = items.filter((item) => item.categoryId === category.id);
-
-  return (
-    <div>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-1">
-          <CategoryTitle
-            name={category.name}
-            size="md"
-            locale={locale}
-            onRename={(name) => {
-              updateMenuCategory(category.id, name);
-              void fillCategoryTranslations(
-                category.id,
-                locale === "fr" ? "fr" : "hy",
-              );
-            }}
-          />
-          <IconButton
-            variant="remove"
-            label={t(locale, "deleteSubsection")}
-            onClick={() => deleteMenuCategory(category.id)}
-          >
-            ×
-          </IconButton>
-        </div>
-        <IconButton
-          label={t(locale, "addItem")}
-          onClick={() => setOpenItem((current) => !current)}
-        >
-          +
-        </IconButton>
-      </div>
-
-      {openItem ? (
-        <AddItemForm
-          categoryId={category.id}
-          currency={currency}
-          locale={locale}
-          onDone={() => setOpenItem(false)}
-        />
-      ) : null}
-
-      {categoryItems.length === 0 && !openItem ? (
-        <p className="mt-4 text-sm text-muted">—</p>
-      ) : (
-        <ul className="mt-4 flex flex-col">
-          {categoryItems.map((item) => (
-            <ItemRow
-              key={item.id}
-              item={item}
-              currency={currency}
-              locale={locale}
-            />
-          ))}
-        </ul>
-      )}
+        ) : null}
+      </section>
     </div>
   );
 }
@@ -442,20 +395,16 @@ function NameForm({
 
 function CategoryTitle({
   name,
-  size,
   locale,
   onRename,
 }: {
   name: string;
-  size: "lg" | "md";
   locale: Locale;
   onRename: (name: string) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const textClass =
-    size === "lg"
-      ? "font-display text-2xl font-medium"
-      : "font-display text-xl font-medium text-teal";
+    "font-display text-2xl font-medium tracking-tight sm:text-[1.75rem]";
 
   if (editing) {
     return (
@@ -657,9 +606,7 @@ function ItemRow({
         onClick={() => setEditing(true)}
         className={`min-w-0 flex-1 text-left ${item.active ? "" : "text-muted"}`}
       >
-        <span
-          className={`text-sm ${item.active ? "" : "line-through"}`}
-        >
+        <span className={`text-sm ${item.active ? "" : "line-through"}`}>
           {item.name}
         </span>
         {item.description ? (
