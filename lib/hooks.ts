@@ -98,11 +98,6 @@ export function useTodayEvents() {
 }
 
 export function useCurrency() {
-  const settings = useSyncExternalStore(
-    subscribeSettings,
-    getSettings,
-    getServerSettings,
-  );
   const ready = useSyncExternalStore(
     subscribeSettings,
     getSettingsReady,
