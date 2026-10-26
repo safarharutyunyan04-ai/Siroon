@@ -14,13 +14,10 @@ import {
   addMenuItem,
   deleteMenuCategory,
   deleteMenuItem,
-  fillCategoryTranslations,
-  fillItemTranslations,
   getChildCategories,
   getRootCategories,
   moveRootCategory,
   reorderRootCategories,
-  translateEntireMenu,
   updateMenuCategory,
   updateMenuItem,
 } from "@/lib/menu-store";
@@ -53,26 +50,10 @@ export function MenuExperience() {
   const [tab, setTab] = useState<MenuTab>("menus");
   const [sectionId, setSectionId] = useState<string | null>(null);
   const [addingSection, setAddingSection] = useState(false);
-  const [translating, setTranslating] = useState(false);
-  const [translateNote, setTranslateNote] = useState("");
   const [dragId, setDragId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const roots = getRootCategories(categories);
   const selected = roots.find((category) => category.id === sectionId) ?? null;
-
-  async function runTranslate() {
-    setTranslating(true);
-    setTranslateNote(t(locale, "translating"));
-    try {
-      await translateEntireMenu(locale === "fr" ? "fr" : "hy");
-      setTranslateNote(t(locale, "translateDone"));
-    } catch {
-      setTranslateNote("");
-    } finally {
-      setTranslating(false);
-      window.setTimeout(() => setTranslateNote(""), 2500);
-    }
-  }
 
   return (
     <div className="animate-rise">
@@ -128,55 +109,23 @@ export function MenuExperience() {
           />
         ) : (
           <div className="mt-6">
-            <div className="panel relative overflow-hidden px-4 py-6 sm:px-7 sm:py-7">
-              <div
-                aria-hidden
-                className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_100%_0%,rgba(196,92,106,0.1),transparent_50%)]"
+            {addingSection ? (
+              <NameForm
+                label={t(locale, "section")}
+                locale={locale}
+                onSubmit={(name) => {
+                  const created = addMenuCategory(name);
+                  setAddingSection(false);
+                  setSectionId(created.id);
+                }}
+                onCancel={() => setAddingSection(false)}
               />
-              <div className="relative flex flex-wrap items-end justify-between gap-4">
-                <div>
-                  <p className="max-w-md text-sm text-muted">
-                    {t(locale, "menuSectionsHint")}
-                  </p>
-                  {translateNote ? (
-                    <p className="mt-2 text-[12px] text-accent">
-                      {translateNote}
-                    </p>
-                  ) : null}
-                </div>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  disabled={translating || roots.length === 0}
-                  onClick={runTranslate}
-                >
-                  {translating
-                    ? t(locale, "translating")
-                    : t(locale, "translateMenu")}
-                </Button>
-              </div>
-              {addingSection ? (
-                <NameForm
-                  label={t(locale, "section")}
-                  locale={locale}
-                  onSubmit={(name) => {
-                    const created = addMenuCategory(name);
-                    void fillCategoryTranslations(
-                      created.id,
-                      locale === "fr" ? "fr" : "hy",
-                    );
-                    setAddingSection(false);
-                    setSectionId(created.id);
-                  }}
-                  onCancel={() => setAddingSection(false)}
-                />
-              ) : null}
-            </div>
+            ) : null}
 
             {!ready ? (
               <p className="mt-8 text-sm text-muted">{t(locale, "loading")}</p>
             ) : (
-              <div className="mt-8 -mx-3 overflow-x-auto px-3 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] sm:mt-10 sm:-mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden">
+              <div className="mt-2 -mx-3 overflow-x-auto px-3 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] sm:mt-4 sm:-mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden">
                 <div className="flex w-max gap-3 sm:gap-4">
                   {roots.map((category, index) => {
                     const count = sectionItems(
@@ -344,10 +293,6 @@ function SectionDetail({
                 locale={locale}
                 onRename={(name) => {
                   updateMenuCategory(category.id, name);
-                  void fillCategoryTranslations(
-                    category.id,
-                    locale === "fr" ? "fr" : "hy",
-                  );
                 }}
               />
               <IconButton
@@ -510,7 +455,7 @@ function AddItemForm({
       onSubmit={(event) => {
         event.preventDefault();
         const data = new FormData(event.currentTarget);
-        const created = addMenuItem({
+        addMenuItem({
           categoryId,
           name: String(data.get("name") ?? ""),
           description: String(data.get("description") ?? ""),
@@ -518,7 +463,6 @@ function AddItemForm({
           priceUnit:
             (String(data.get("unit") ?? "portion") as PriceUnit) || "portion",
         });
-        void fillItemTranslations(created.id, locale === "fr" ? "fr" : "hy");
         onDone();
       }}
     >
@@ -597,7 +541,6 @@ function ItemRow({
                 (String(data.get("unit") ?? item.priceUnit) as PriceUnit) ||
                 item.priceUnit,
             });
-            void fillItemTranslations(item.id, locale === "fr" ? "fr" : "hy");
             setEditing(false);
           }}
         >
