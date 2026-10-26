@@ -18,6 +18,8 @@ import {
   fillItemTranslations,
   getChildCategories,
   getRootCategories,
+  moveRootCategory,
+  reorderRootCategories,
   translateEntireMenu,
   updateMenuCategory,
   updateMenuItem,
@@ -53,6 +55,8 @@ export function MenuExperience() {
   const [addingSection, setAddingSection] = useState(false);
   const [translating, setTranslating] = useState(false);
   const [translateNote, setTranslateNote] = useState("");
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
   const roots = getRootCategories(categories);
   const selected = roots.find((category) => category.id === sectionId) ?? null;
 
@@ -180,17 +184,88 @@ export function MenuExperience() {
                       categories,
                       items,
                     ).length;
+                    const isDragging = dragId === category.id;
+                    const isOver =
+                      dragOverId === category.id && dragId !== category.id;
                     return (
-                      <button
+                      <div
                         key={category.id}
-                        type="button"
-                        onClick={() => setSectionId(category.id)}
-                        className="group flex h-36 w-36 shrink-0 flex-col justify-between rounded-[16px] border border-border/80 bg-[linear-gradient(160deg,#fffaf8_0%,#faf0f2_100%)] p-4 text-left shadow-[0_8px_24px_rgba(26,21,16,0.04)] transition-[transform,border-color,box-shadow] duration-[var(--duration)] hover:-translate-y-0.5 hover:border-accent/35 hover:shadow-[0_12px_28px_rgba(163,68,84,0.12)] sm:h-40 sm:w-40 sm:p-5"
+                        draggable
+                        onDragStart={() => setDragId(category.id)}
+                        onDragEnd={() => {
+                          setDragId(null);
+                          setDragOverId(null);
+                        }}
+                        onDragOver={(event) => {
+                          event.preventDefault();
+                          setDragOverId(category.id);
+                        }}
+                        onDragLeave={() => {
+                          setDragOverId((current) =>
+                            current === category.id ? null : current,
+                          );
+                        }}
+                        onDrop={(event) => {
+                          event.preventDefault();
+                          if (!dragId || dragId === category.id) {
+                            setDragId(null);
+                            setDragOverId(null);
+                            return;
+                          }
+                          const orderedIds = roots.map((entry) => entry.id);
+                          const from = orderedIds.indexOf(dragId);
+                          const to = orderedIds.indexOf(category.id);
+                          if (from < 0 || to < 0) return;
+                          orderedIds.splice(from, 1);
+                          orderedIds.splice(to, 0, dragId);
+                          reorderRootCategories(orderedIds);
+                          setDragId(null);
+                          setDragOverId(null);
+                        }}
+                        className={`relative flex h-36 w-36 shrink-0 flex-col rounded-[16px] border bg-[linear-gradient(160deg,#fffaf8_0%,#faf0f2_100%)] shadow-[0_8px_24px_rgba(26,21,16,0.04)] transition-[transform,border-color,box-shadow,opacity] duration-[var(--duration)] sm:h-40 sm:w-40 ${
+                          isDragging
+                            ? "border-accent/50 opacity-55"
+                            : isOver
+                              ? "border-accent -translate-y-0.5 shadow-[0_12px_28px_rgba(163,68,84,0.14)]"
+                              : "border-border/80 hover:-translate-y-0.5 hover:border-accent/35 hover:shadow-[0_12px_28px_rgba(163,68,84,0.12)]"
+                        }`}
                       >
-                        <span className="label text-muted/80">
-                          {String(index + 1).padStart(2, "0")}
-                        </span>
-                        <div>
+                        <div className="flex items-center justify-between px-2.5 pt-2.5">
+                          <span className="label text-muted/80">
+                            {String(index + 1).padStart(2, "0")}
+                          </span>
+                          <div className="flex items-center gap-0.5">
+                            <button
+                              type="button"
+                              aria-label={t(locale, "moveSectionLeft")}
+                              disabled={index === 0}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                moveRootCategory(category.id, -1);
+                              }}
+                              className="flex h-7 w-7 items-center justify-center rounded-[8px] text-muted transition-colors hover:bg-white/80 hover:text-foreground disabled:opacity-25"
+                            >
+                              ‹
+                            </button>
+                            <button
+                              type="button"
+                              aria-label={t(locale, "moveSectionRight")}
+                              disabled={index === roots.length - 1}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                moveRootCategory(category.id, 1);
+                              }}
+                              className="flex h-7 w-7 items-center justify-center rounded-[8px] text-muted transition-colors hover:bg-white/80 hover:text-foreground disabled:opacity-25"
+                            >
+                              ›
+                            </button>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setSectionId(category.id)}
+                          className="flex min-h-0 flex-1 flex-col justify-end p-4 pt-1 text-left sm:p-5 sm:pt-1"
+                        >
                           <span className="font-display line-clamp-2 text-lg font-medium tracking-tight text-foreground sm:text-xl">
                             {category.name}
                           </span>
@@ -200,8 +275,8 @@ export function MenuExperience() {
                               ? t(locale, "menuItemOne")
                               : t(locale, "menuItemMany")}
                           </span>
-                        </div>
-                      </button>
+                        </button>
+                      </div>
                     );
                   })}
 

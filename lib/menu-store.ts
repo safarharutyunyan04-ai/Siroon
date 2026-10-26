@@ -126,6 +126,47 @@ export function updateMenuCategory(
   if (updated) void upsertCategory(updated);
 }
 
+export function reorderRootCategories(orderedIds: string[]) {
+  hydrate();
+  const roots = getRootCategories(state.categories);
+  if (
+    orderedIds.length !== roots.length ||
+    !roots.every((category) => orderedIds.includes(category.id))
+  ) {
+    return;
+  }
+  const orderMap = new Map(orderedIds.map((id, index) => [id, index]));
+  const updated: MenuCategory[] = [];
+  state = {
+    ...state,
+    categories: state.categories.map((category) => {
+      if (category.parentId !== null) return category;
+      const sortOrder = orderMap.get(category.id);
+      if (sortOrder === undefined || category.sortOrder === sortOrder) {
+        return category;
+      }
+      const next = { ...category, sortOrder };
+      updated.push(next);
+      return next;
+    }),
+  };
+  if (updated.length === 0) return;
+  emit(true);
+  for (const category of updated) void upsertCategory(category);
+}
+
+export function moveRootCategory(categoryId: string, direction: -1 | 1) {
+  hydrate();
+  const roots = getRootCategories(state.categories);
+  const index = roots.findIndex((category) => category.id === categoryId);
+  const target = index + direction;
+  if (index < 0 || target < 0 || target >= roots.length) return;
+  const orderedIds = roots.map((category) => category.id);
+  const [moved] = orderedIds.splice(index, 1);
+  orderedIds.splice(target, 0, moved);
+  reorderRootCategories(orderedIds);
+}
+
 export function deleteMenuCategory(categoryId: string) {
   hydrate();
   const toRemove = [...collectCategoryIds(categoryId)];
