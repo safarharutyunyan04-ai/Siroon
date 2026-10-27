@@ -180,12 +180,27 @@ export function deleteMenuCategory(categoryId: string) {
   void deleteCategories(toRemove);
 }
 
+export function normalizeRoomPrices(
+  value: MenuItem["roomPrices"] | null | undefined,
+): MenuItem["roomPrices"] {
+  if (!value || typeof value !== "object") return {};
+  const next: MenuItem["roomPrices"] = {};
+  for (const roomId of ["hall-1", "hall-2", "hall-3"] as const) {
+    const raw = value[roomId];
+    if (typeof raw === "number" && Number.isFinite(raw)) {
+      next[roomId] = Math.max(0, Math.round(raw));
+    }
+  }
+  return next;
+}
+
 export function addMenuItem(input: {
   categoryId: string;
   name: string;
   description?: string;
   price: number;
   priceUnit: PriceUnit;
+  roomPrices?: MenuItem["roomPrices"];
   i18n?: MenuItem["i18n"];
 }) {
   hydrate();
@@ -196,6 +211,7 @@ export function addMenuItem(input: {
     description: (input.description ?? "").trim(),
     i18n: input.i18n ?? {},
     price: Math.max(0, Math.round(input.price)),
+    roomPrices: normalizeRoomPrices(input.roomPrices),
     priceUnit: input.priceUnit,
     active: true,
     createdAt: new Date().toISOString(),
@@ -215,6 +231,7 @@ export function updateMenuItem(
       | "description"
       | "i18n"
       | "price"
+      | "roomPrices"
       | "priceUnit"
       | "active"
       | "categoryId"
@@ -243,6 +260,10 @@ export function updateMenuItem(
           patch.price !== undefined
             ? Math.max(0, Math.round(patch.price))
             : item.price,
+        roomPrices:
+          patch.roomPrices !== undefined
+            ? normalizeRoomPrices(patch.roomPrices)
+            : item.roomPrices,
       };
       return updated;
     }),
@@ -416,6 +437,7 @@ function normalizeItem(item: Partial<MenuItem>): MenuItem {
     description: typeof item.description === "string" ? item.description : "",
     i18n,
     price: typeof item.price === "number" ? Math.max(0, item.price) : 0,
+    roomPrices: normalizeRoomPrices(item.roomPrices),
     priceUnit:
       item.priceUnit === "unit" ||
       item.priceUnit === "kg" ||

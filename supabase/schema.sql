@@ -18,9 +18,14 @@ create table if not exists public.menu_items (
   i18n jsonb not null default '{}'::jsonb,
   price numeric not null default 0,
   price_unit text not null default 'portion',
+  room_prices jsonb not null default '{}'::jsonb,
   active boolean not null default true,
   created_at timestamptz not null default now()
 );
+
+-- Migration bases déjà créées :
+alter table public.menu_items
+  add column if not exists room_prices jsonb not null default '{}'::jsonb;
 
 -- ── Événements (1 ligne = 1 événement) ─────────────────────────────────────
 create table if not exists public.venue_events (

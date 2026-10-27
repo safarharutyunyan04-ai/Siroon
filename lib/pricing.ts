@@ -1,11 +1,14 @@
 import type {
   Currency,
   EventDiscount,
+  Locale,
   MenuItem,
   PriceRule,
+  RoomId,
   VenueEvent,
 } from "@/types/domain";
 import { formatMoney } from "@/lib/format";
+import { t } from "@/lib/i18n/messages";
 
 export type QuoteLine = {
   itemId: string;
@@ -37,6 +40,28 @@ export type EventQuote = {
 };
 
 export const emptyDiscount: EventDiscount = { kind: "none", value: 0 };
+
+/** Grande salle : +1500 AMD / personne ; autres salles : +500 AMD / personne */
+export function roomFeePerGuest(roomId: RoomId): number {
+  return roomId === "hall-1" ? 1500 : 500;
+}
+
+export function itemPriceForRoom(item: MenuItem, roomId: RoomId): number {
+  const override = item.roomPrices?.[roomId];
+  if (typeof override === "number" && Number.isFinite(override)) {
+    return Math.max(0, override);
+  }
+  return Math.max(0, item.price);
+}
+
+export function hasRoomPrices(item: MenuItem): boolean {
+  if (!item.roomPrices) return false;
+  return (
+    typeof item.roomPrices["hall-1"] === "number" ||
+    typeof item.roomPrices["hall-2"] === "number" ||
+    typeof item.roomPrices["hall-3"] === "number"
+  );
+}
 
 export function normalizeDiscount(
   discount: Partial<EventDiscount> | null | undefined,
@@ -74,9 +99,13 @@ export function normalizePriceRules(
 }
 
 export function quoteEvent(
-  event: Pick<VenueEvent, "lines" | "discount" | "priceRules">,
+  event: Pick<
+    VenueEvent,
+    "lines" | "discount" | "priceRules" | "roomId" | "guests"
+  >,
   menu: MenuItem[],
   currency: Currency = "AMD",
+  locale: Locale = "hy",
 ): EventQuote {
   const byId = new Map(menu.map((item) => [item.id, item]));
   const lines: QuoteLine[] = [];
@@ -86,14 +115,15 @@ export function quoteEvent(
     if (!item || !item.active) continue;
     const quantity = Math.max(0, line.quantity);
     if (quantity <= 0) continue;
-    const amount = item.price * quantity;
-    const unit = formatMoney(item.price, currency);
+    const unitPrice = itemPriceForRoom(item, event.roomId);
+    const amount = unitPrice * quantity;
+    const unit = formatMoney(unitPrice, currency);
     lines.push({
       itemId: item.id,
       name: item.name,
       categoryId: item.categoryId,
       quantity,
-      unitPrice: item.price,
+      unitPrice,
       priceUnit: item.priceUnit,
       amount,
       explanation:
@@ -107,21 +137,41 @@ export function quoteEvent(
 
   const subtotal = lines.reduce((sum, line) => sum + line.amount, 0);
   const discount = normalizeDiscount(event.discount);
+  const guests = Math.max(0, Math.round(Number(event.guests) || 0));
+  const perGuest = roomFeePerGuest(event.roomId);
+  const roomFeeAmount = guests > 0 ? perGuest * guests : 0;
+
+  const rules: QuoteRule[] = [];
+  if (roomFeeAmount > 0) {
+    rules.push({
+      id: "room-fee",
+      label:
+        event.roomId === "hall-1"
+          ? t(locale, "roomFeeLarge")
+          : t(locale, "roomFeeStandard"),
+      kind: "amount",
+      value: perGuest,
+      amount: roomFeeAmount,
+    });
+  }
+
+  const rulesTotal = rules.reduce((sum, rule) => sum + rule.amount, 0);
+  const afterRules = subtotal + rulesTotal;
 
   const discountAmount =
     discount.kind === "percent"
-      ? (subtotal * discount.value) / 100
+      ? (afterRules * discount.value) / 100
       : discount.kind === "amount"
-        ? Math.min(discount.value, Math.max(0, subtotal))
+        ? Math.min(discount.value, Math.max(0, afterRules))
         : 0;
 
-  const total = Math.max(0, Math.round(subtotal - discountAmount));
+  const total = Math.max(0, Math.round(afterRules - discountAmount));
 
   return {
     lines,
     subtotal: Math.round(subtotal),
-    rules: [],
-    rulesTotal: 0,
+    rules,
+    rulesTotal: Math.round(rulesTotal),
     discount,
     discountAmount: Math.round(discountAmount),
     total,

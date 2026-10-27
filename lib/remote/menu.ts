@@ -18,6 +18,7 @@ type ItemRow = {
   i18n: MenuItem["i18n"];
   price: number;
   price_unit: MenuItem["priceUnit"];
+  room_prices?: MenuItem["roomPrices"] | null;
   active: boolean;
   created_at: string;
 };
@@ -83,6 +84,7 @@ export async function upsertItem(item: MenuItem) {
     i18n: item.i18n ?? {},
     price: item.price,
     price_unit: item.priceUnit,
+    room_prices: item.roomPrices ?? {},
     active: item.active,
     created_at: item.createdAt,
   });
@@ -146,6 +148,15 @@ function rowToCategory(row: CategoryRow): MenuCategory {
 }
 
 function rowToItem(row: ItemRow): MenuItem {
+  const roomPricesRaw =
+    row.room_prices && typeof row.room_prices === "object"
+      ? row.room_prices
+      : {};
+  const roomPrices: MenuItem["roomPrices"] = {};
+  for (const roomId of ["hall-1", "hall-2", "hall-3"] as const) {
+    const value = Number(roomPricesRaw[roomId]);
+    if (Number.isFinite(value)) roomPrices[roomId] = Math.max(0, value);
+  }
   return {
     id: row.id,
     categoryId: row.category_id,
@@ -153,6 +164,7 @@ function rowToItem(row: ItemRow): MenuItem {
     description: row.description ?? "",
     i18n: row.i18n && typeof row.i18n === "object" ? row.i18n : {},
     price: Number(row.price) || 0,
+    roomPrices,
     priceUnit:
       row.price_unit === "unit" ||
       row.price_unit === "kg" ||

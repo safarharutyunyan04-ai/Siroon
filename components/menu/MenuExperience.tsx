@@ -9,6 +9,7 @@ import { getCurrency } from "@/lib/currency";
 import { formatPrice } from "@/lib/format";
 import { t } from "@/lib/i18n/messages";
 import { useCurrency, useLocale, useMenu } from "@/lib/hooks";
+import { hasRoomPrices } from "@/lib/pricing";
 import {
   addMenuCategory,
   addMenuItem,
@@ -17,16 +18,19 @@ import {
   getChildCategories,
   getRootCategories,
   moveRootCategory,
+  normalizeRoomPrices,
   reorderRootCategories,
   updateMenuCategory,
   updateMenuItem,
 } from "@/lib/menu-store";
+import { rooms } from "@/lib/rooms";
 import type {
   Currency,
   Locale,
   MenuCategory,
   MenuItem,
   PriceUnit,
+  RoomId,
 } from "@/types/domain";
 
 type MenuTab = "menus" | "qr";
@@ -110,16 +114,18 @@ export function MenuExperience() {
         ) : (
           <div className="mt-6">
             {addingSection ? (
-              <NameForm
-                label={t(locale, "section")}
-                locale={locale}
-                onSubmit={(name) => {
-                  const created = addMenuCategory(name);
-                  setAddingSection(false);
-                  setSectionId(created.id);
-                }}
-                onCancel={() => setAddingSection(false)}
-              />
+              <div className="mb-4">
+                <NameForm
+                  label={t(locale, "section")}
+                  locale={locale}
+                  onSubmit={(name) => {
+                    const created = addMenuCategory(name);
+                    setAddingSection(false);
+                    setSectionId(created.id);
+                  }}
+                  onCancel={() => setAddingSection(false)}
+                />
+              </div>
             ) : null}
 
             {!ready ? (
@@ -271,10 +277,17 @@ function SectionDetail({
   onDeleted: () => void;
 }) {
   const [openItem, setOpenItem] = useState(false);
-  const list = sectionItems(category.id, categories, items);
+  const [addingSub, setAddingSub] = useState(false);
+  const children = getChildCategories(categories, category.id);
+  const directItems = items.filter((item) => item.categoryId === category.id);
+  const isEmpty =
+    directItems.length === 0 &&
+    children.length === 0 &&
+    !openItem &&
+    !addingSub;
 
   return (
-    <div className="mt-6 animate-rise">
+    <div className="mt-6 animate-rise pb-28">
       <button
         type="button"
         onClick={onBack}
@@ -284,49 +297,38 @@ function SectionDetail({
       </button>
 
       <section className="panel mt-5 overflow-hidden px-5 py-6 sm:mt-6 sm:px-7 sm:py-8">
-        <header className="flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-0">
-            <p className="label">{t(locale, "section")}</p>
-            <div className="mt-2 flex min-w-0 items-center gap-1">
-              <CategoryTitle
-                name={category.name}
-                locale={locale}
-                onRename={(name) => {
-                  updateMenuCategory(category.id, name);
-                }}
-              />
-              <IconButton
-                variant="remove"
-                label={t(locale, "deleteSection")}
-                onClick={() => {
-                  if (
-                    typeof window !== "undefined" &&
-                    !window.confirm(t(locale, "deleteSection") + " ?")
-                  ) {
-                    return;
-                  }
-                  deleteMenuCategory(category.id);
-                  onDeleted();
-                }}
-              >
-                ×
-              </IconButton>
-            </div>
-            <div className="menu-section-rule mt-4" aria-hidden />
-          </div>
-          {!openItem ? (
+        <header>
+          <p className="label">{t(locale, "section")}</p>
+          <div className="mt-2 flex min-w-0 flex-wrap items-center gap-2">
+            <CategoryTitle
+              name={category.name}
+              size="lg"
+              locale={locale}
+              onRename={(name) => updateMenuCategory(category.id, name)}
+            />
             <Button
-              type="button"
-              onClick={() => setOpenItem(true)}
+              size="sm"
+              variant="danger"
+              onClick={() => {
+                if (
+                  typeof window !== "undefined" &&
+                  !window.confirm(t(locale, "deleteSection") + " ?")
+                ) {
+                  return;
+                }
+                deleteMenuCategory(category.id);
+                onDeleted();
+              }}
             >
-              {t(locale, "addItem")}
+              {t(locale, "deleteSection")}
             </Button>
-          ) : null}
+          </div>
+          <div className="menu-section-rule mt-4" aria-hidden />
         </header>
 
-        {list.length > 0 ? (
+        {directItems.length > 0 ? (
           <ul className="mt-2 flex flex-col">
-            {list.map((item) => (
+            {directItems.map((item) => (
               <ItemRow
                 key={item.id}
                 item={item}
@@ -335,19 +337,150 @@ function SectionDetail({
               />
             ))}
           </ul>
-        ) : !openItem ? (
-          <p className="mt-8 text-sm text-muted">{t(locale, "menuSectionEmpty")}</p>
         ) : null}
 
-        {openItem ? (
-          <AddItemForm
-            categoryId={category.id}
-            currency={currency}
-            locale={locale}
-            onDone={() => setOpenItem(false)}
-          />
+        {children.length > 0 ? (
+          <div className="mt-8 flex flex-col gap-5 sm:mt-10 sm:gap-6">
+            {children.map((child) => (
+              <SubsectionBlock
+                key={child.id}
+                category={child}
+                items={items}
+                currency={currency}
+                locale={locale}
+              />
+            ))}
+          </div>
+        ) : null}
+
+        {isEmpty ? (
+          <p className="mt-8 text-sm text-muted">{t(locale, "menuSectionEmpty")}</p>
         ) : null}
       </section>
+
+      <div className="sticky bottom-3 z-20 mt-4">
+        {openItem ? (
+          <div className="rounded-[16px] border border-border/80 bg-surface-raised/95 p-4 shadow-[0_12px_36px_rgba(26,21,16,0.12)] backdrop-blur-xl sm:p-5">
+            <AddItemForm
+              categoryId={category.id}
+              currency={currency}
+              locale={locale}
+              onDone={() => setOpenItem(false)}
+              compact
+            />
+          </div>
+        ) : addingSub ? (
+          <div className="rounded-[16px] border border-border/80 bg-surface-raised/95 px-4 py-3 shadow-[0_12px_36px_rgba(26,21,16,0.12)] backdrop-blur-xl sm:px-5">
+            <NameForm
+              label={t(locale, "subsection")}
+              locale={locale}
+              onSubmit={(name) => {
+                addMenuCategory(name, category.id);
+                setAddingSub(false);
+              }}
+              onCancel={() => setAddingSub(false)}
+            />
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-2 rounded-[16px] border border-border/80 bg-surface-raised/95 p-3 shadow-[0_12px_36px_rgba(26,21,16,0.12)] backdrop-blur-xl">
+            <Button
+              size="sm"
+              onClick={() => {
+                setOpenItem(true);
+                setAddingSub(false);
+              }}
+            >
+              {t(locale, "addItem")}
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                setAddingSub(true);
+                setOpenItem(false);
+              }}
+            >
+              {t(locale, "addSubsection")}
+            </Button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SubsectionBlock({
+  category,
+  items,
+  currency,
+  locale,
+}: {
+  category: MenuCategory;
+  items: MenuItem[];
+  currency: Currency;
+  locale: Locale;
+}) {
+  const [openItem, setOpenItem] = useState(false);
+  const categoryItems = items.filter((item) => item.categoryId === category.id);
+
+  return (
+    <div className="rounded-[14px] bg-[linear-gradient(180deg,rgba(255,255,255,0.72),rgba(250,240,242,0.35))] px-4 py-5 ring-1 ring-border/70 sm:px-5 sm:py-6">
+      <header>
+        <p className="label text-teal">{t(locale, "subsection")}</p>
+        <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-2">
+          <CategoryTitle
+            name={category.name}
+            size="md"
+            locale={locale}
+            onRename={(name) => updateMenuCategory(category.id, name)}
+          />
+          <Button
+            size="sm"
+            variant="danger"
+            onClick={() => {
+              if (
+                typeof window !== "undefined" &&
+                !window.confirm(t(locale, "deleteSubsection") + " ?")
+              ) {
+                return;
+              }
+              deleteMenuCategory(category.id);
+            }}
+          >
+            {t(locale, "deleteSubsection")}
+          </Button>
+        </div>
+      </header>
+
+      {categoryItems.length > 0 ? (
+        <ul className="mt-1 flex flex-col">
+          {categoryItems.map((item) => (
+            <ItemRow
+              key={item.id}
+              item={item}
+              currency={currency}
+              locale={locale}
+            />
+          ))}
+        </ul>
+      ) : !openItem ? (
+        <p className="mt-4 text-sm text-muted">—</p>
+      ) : null}
+
+      {openItem ? (
+        <AddItemForm
+          categoryId={category.id}
+          currency={currency}
+          locale={locale}
+          onDone={() => setOpenItem(false)}
+        />
+      ) : (
+        <div className="mt-4">
+          <Button size="sm" variant="ghost" onClick={() => setOpenItem(true)}>
+            {t(locale, "addItem")}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
@@ -365,7 +498,7 @@ function NameForm({
 }) {
   return (
     <form
-      className="relative mt-6 flex max-w-md flex-wrap items-end gap-3"
+      className="relative flex max-w-md flex-wrap items-end gap-3"
       onSubmit={(event) => {
         event.preventDefault();
         const data = new FormData(event.currentTarget);
@@ -391,16 +524,20 @@ function NameForm({
 
 function CategoryTitle({
   name,
+  size = "lg",
   locale,
   onRename,
 }: {
   name: string;
+  size?: "lg" | "md";
   locale: Locale;
   onRename: (name: string) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const textClass =
-    "font-display text-2xl font-medium tracking-tight sm:text-[1.75rem]";
+    size === "lg"
+      ? "font-display text-2xl font-medium tracking-tight sm:text-[1.75rem]"
+      : "font-display text-xl font-medium tracking-tight text-teal sm:text-[1.35rem]";
 
   if (editing) {
     return (
@@ -437,24 +574,42 @@ function CategoryTitle({
   );
 }
 
+function readRoomPricesFromForm(data: FormData): MenuItem["roomPrices"] {
+  if (data.get("priceByRoom") !== "on") return {};
+  const roomPrices: MenuItem["roomPrices"] = {};
+  for (const room of rooms) {
+    const raw = data.get(`price-${room.id}`);
+    if (raw === null || String(raw).trim() === "") continue;
+    const value = Number(raw);
+    if (Number.isFinite(value)) roomPrices[room.id] = Math.max(0, value);
+  }
+  return normalizeRoomPrices(roomPrices);
+}
+
 function AddItemForm({
   categoryId,
   currency,
   locale,
   onDone,
+  compact = false,
 }: {
   categoryId: string;
   currency: Currency;
   locale: Locale;
   onDone: () => void;
+  compact?: boolean;
 }) {
   const symbol = getCurrency(currency).symbol;
+  const [byRoom, setByRoom] = useState(false);
   return (
     <form
-      className="mt-6 grid max-w-2xl gap-4 border-t border-border pt-6 sm:grid-cols-[1fr_8rem_8rem_auto]"
+      className={`grid max-w-2xl gap-4 sm:grid-cols-[1fr_8rem_8rem_auto] ${
+        compact ? "" : "mt-6 border-t border-border pt-6"
+      }`}
       onSubmit={(event) => {
         event.preventDefault();
         const data = new FormData(event.currentTarget);
+        const roomPrices = readRoomPricesFromForm(data);
         addMenuItem({
           categoryId,
           name: String(data.get("name") ?? ""),
@@ -462,6 +617,7 @@ function AddItemForm({
           price: Number(data.get("price") ?? 0),
           priceUnit:
             (String(data.get("unit") ?? "portion") as PriceUnit) || "portion",
+          roomPrices,
         });
         onDone();
       }}
@@ -499,6 +655,12 @@ function AddItemForm({
           className="resize-y border-b border-border bg-transparent py-2 text-sm outline-none focus:border-foreground"
         />
       </label>
+      <RoomPriceFields
+        locale={locale}
+        symbol={symbol}
+        enabled={byRoom}
+        onEnabledChange={setByRoom}
+      />
     </form>
   );
 }
@@ -523,6 +685,7 @@ function ItemRow({
   locale: Locale;
 }) {
   const [editing, setEditing] = useState(false);
+  const [byRoom, setByRoom] = useState(() => hasRoomPrices(item));
   const symbol = getCurrency(currency).symbol;
 
   if (editing) {
@@ -540,6 +703,7 @@ function ItemRow({
               priceUnit:
                 (String(data.get("unit") ?? item.priceUnit) as PriceUnit) ||
                 item.priceUnit,
+              roomPrices: readRoomPricesFromForm(data),
             });
             setEditing(false);
           }}
@@ -588,6 +752,14 @@ function ItemRow({
               className="resize-y border-b border-border bg-transparent py-2 text-sm outline-none focus:border-foreground"
             />
           </label>
+          <RoomPriceFields
+            locale={locale}
+            symbol={symbol}
+            enabled={byRoom}
+            onEnabledChange={setByRoom}
+            defaults={item.roomPrices}
+            fallbackPrice={item.price}
+          />
         </form>
       </li>
     );
@@ -597,7 +769,10 @@ function ItemRow({
     <li className="flex flex-wrap items-start justify-between gap-4 border-t border-border py-5">
       <button
         type="button"
-        onClick={() => setEditing(true)}
+        onClick={() => {
+          setByRoom(hasRoomPrices(item));
+          setEditing(true);
+        }}
         className={`min-w-0 flex-1 text-left ${item.active ? "" : "text-muted"}`}
       >
         <span className={`text-sm ${item.active ? "" : "line-through"}`}>
@@ -606,6 +781,11 @@ function ItemRow({
         {item.description ? (
           <span className="mt-1 block text-[13px] leading-snug text-muted">
             {item.description}
+          </span>
+        ) : null}
+        {hasRoomPrices(item) ? (
+          <span className="mt-1 block text-[12px] text-teal">
+            {t(locale, "priceByRoom")}
           </span>
         ) : null}
       </button>
@@ -628,6 +808,64 @@ function ItemRow({
         </IconButton>
       </div>
     </li>
+  );
+}
+
+function RoomPriceFields({
+  locale,
+  symbol,
+  enabled,
+  onEnabledChange,
+  defaults,
+  fallbackPrice = 0,
+}: {
+  locale: Locale;
+  symbol: string;
+  enabled: boolean;
+  onEnabledChange: (value: boolean) => void;
+  defaults?: Partial<Record<RoomId, number>>;
+  fallbackPrice?: number;
+}) {
+  return (
+    <div className="sm:col-span-4">
+      <label className="flex cursor-pointer items-start gap-2.5">
+        <input
+          type="checkbox"
+          name="priceByRoom"
+          checked={enabled}
+          onChange={(change) => onEnabledChange(change.target.checked)}
+          className="mt-1"
+        />
+        <span>
+          <span className="block text-sm font-medium text-foreground">
+            {t(locale, "priceByRoom")}
+          </span>
+          <span className="mt-0.5 block text-[12px] text-muted">
+            {t(locale, "priceByRoomHint")}
+          </span>
+        </span>
+      </label>
+      {enabled ? (
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          {rooms.map((room) => (
+            <label key={room.id} className="flex flex-col gap-2">
+              <span className="label">{t(locale, room.nameKey)}</span>
+              <input
+                name={`price-${room.id}`}
+                type="number"
+                min={0}
+                defaultValue={String(
+                  defaults?.[room.id] ?? fallbackPrice ?? "",
+                )}
+                required
+                className="border-b border-border bg-transparent py-2 text-sm tabular-nums outline-none focus:border-foreground"
+              />
+              <span className="text-[11px] text-muted">{symbol}</span>
+            </label>
+          ))}
+        </div>
+      ) : null}
+    </div>
   );
 }
 

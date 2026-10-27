@@ -26,6 +26,8 @@ export type MenuItem = {
   /** Translated name/description keyed by locale */
   i18n: Partial<Record<Locale, MenuItemI18n>>;
   price: number;
+  /** Optional per-room overrides; missing rooms fall back to `price` */
+  roomPrices: Partial<Record<RoomId, number>>;
   priceUnit: PriceUnit;
   active: boolean;
   createdAt: string;

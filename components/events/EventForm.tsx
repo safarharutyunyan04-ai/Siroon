@@ -8,7 +8,12 @@ import { t } from "@/lib/i18n/messages";
 import { useCurrency, useLocale, useMenu } from "@/lib/hooks";
 import { createEvent, updateEvent } from "@/lib/events-store";
 import { getChildCategories, getRootCategories } from "@/lib/menu-store";
-import { emptyDiscount, normalizeDiscount, quoteEvent } from "@/lib/pricing";
+import {
+  emptyDiscount,
+  itemPriceForRoom,
+  normalizeDiscount,
+  quoteEvent,
+} from "@/lib/pricing";
 import { roomTone, rooms } from "@/lib/rooms";
 import type {
   Currency,
@@ -60,14 +65,32 @@ export function EventForm({ event }: EventFormProps) {
     [lines],
   );
 
+  const guestsCount =
+    guests === "" ? 0 : Math.max(0, Math.round(Number(guests)) || 0);
+
   const quote = useMemo(
     () =>
       quoteEvent(
-        { lines: selectedLines, discount, priceRules: [] },
+        {
+          lines: selectedLines,
+          discount,
+          priceRules: [],
+          roomId,
+          guests: guestsCount,
+        },
         activeMenu,
         currency,
+        locale,
       ),
-    [activeMenu, currency, discount, selectedLines],
+    [
+      activeMenu,
+      currency,
+      discount,
+      guestsCount,
+      locale,
+      roomId,
+      selectedLines,
+    ],
   );
 
   function setQty(itemId: string, quantity: number) {
@@ -230,6 +253,7 @@ export function EventForm({ event }: EventFormProps) {
                           <MenuLine
                             key={item.id}
                             item={item}
+                            roomId={roomId}
                             currency={currency}
                             locale={locale}
                             quantity={lines[item.id] ?? 0}
@@ -248,6 +272,7 @@ export function EventForm({ event }: EventFormProps) {
                             <MenuLine
                               key={item.id}
                               item={item}
+                              roomId={roomId}
                               currency={currency}
                               locale={locale}
                               quantity={lines[item.id] ?? 0}
@@ -327,6 +352,13 @@ export function EventForm({ event }: EventFormProps) {
               label={t(locale, "subtotal")}
               value={formatMoney(quote.subtotal, currency, locale)}
             />
+            {quote.rules.map((rule) => (
+              <QuoteRow
+                key={rule.id}
+                label={rule.label}
+                value={formatSignedMoney(rule.amount, currency, locale)}
+              />
+            ))}
             {quote.discountAmount > 0 ? (
               <QuoteRow
                 label={
@@ -381,12 +413,14 @@ function formatSignedMoney(
 
 function MenuLine({
   item,
+  roomId,
   currency,
   locale,
   quantity,
   onChange,
 }: {
   item: MenuItem;
+  roomId: RoomId;
   currency: Currency;
   locale: Locale;
   quantity: number;
@@ -394,6 +428,7 @@ function MenuLine({
 }) {
   const selected = quantity > 0;
   const step = item.priceUnit === "kg" ? 0.5 : 1;
+  const unitPrice = itemPriceForRoom(item, roomId);
   const [draft, setDraft] = useState<string | null>(null);
 
   const display =
@@ -428,7 +463,7 @@ function MenuLine({
       <div>
         <p className="text-sm">{item.name}</p>
         <p className="mt-1 text-[11px] text-muted">
-          {formatPrice(item.price, item.priceUnit, currency, locale)}
+          {formatPrice(unitPrice, item.priceUnit, currency, locale)}
         </p>
       </div>
       <div className="flex items-center gap-2">
