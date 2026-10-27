@@ -113,6 +113,18 @@ export function OrderSheetPrint({
         </p>
         <p className="carte-print-order-total-value">
           {formatMoney(quote.total, currency, locale)}
+          {event.guests > 0 ? (
+            <span className="carte-print-order-per-person">
+              {" "}
+              ·{" "}
+              {formatMoney(
+                Math.round(quote.total / event.guests),
+                currency,
+                locale,
+              )}{" "}
+              {t(locale, "pricePerPerson")}
+            </span>
+          ) : null}
         </p>
       </section>
 

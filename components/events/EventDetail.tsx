@@ -119,6 +119,17 @@ export function EventDetail({ eventId }: { eventId: string }) {
             }`}
           >
             {formatMoney(quote.total, currency, locale)}
+            {event.guests > 0 ? (
+              <span className="ml-3 text-xl font-normal text-muted sm:text-2xl">
+                ·{" "}
+                {formatMoney(
+                  Math.round(quote.total / event.guests),
+                  currency,
+                  locale,
+                )}{" "}
+                {t(locale, "pricePerPerson")}
+              </span>
+            ) : null}
           </p>
           {quote.subtotal !== quote.total ||
           quote.rules.length > 0 ||

@@ -346,6 +346,17 @@ export function EventForm({ event }: EventFormProps) {
           <p className="label">{t(locale, "estimatedTotal")}</p>
           <p className="font-display mt-3 text-2xl font-medium text-accent tabular-nums sm:text-3xl">
             {formatMoney(quote.total, currency, locale)}
+            {guestsCount > 0 ? (
+              <span className="ml-2 text-base font-normal text-muted sm:text-lg">
+                ·{" "}
+                {formatMoney(
+                  Math.round(quote.total / guestsCount),
+                  currency,
+                  locale,
+                )}{" "}
+                {t(locale, "pricePerPerson")}
+              </span>
+            ) : null}
           </p>
           <div className="mt-4 space-y-1.5 border-t border-border/70 pt-3 text-[12px] text-muted">
             <QuoteRow
