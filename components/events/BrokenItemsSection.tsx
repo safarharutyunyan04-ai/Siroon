@@ -115,13 +115,7 @@ export function BrokenItemsSection({
         </div>
       ) : null}
 
-      {!ready ? (
-        <p className="mt-5 text-sm text-muted">{t(locale, "loading")}</p>
-      ) : activeCatalog.length === 0 ? (
-        <p className="mt-5 text-sm text-muted">
-          {t(locale, "brokenCatalogEmpty")}
-        </p>
-      ) : (
+      {ready && activeCatalog.length > 0 ? (
         <form
           className="mt-5 grid max-w-2xl gap-3 sm:grid-cols-[1fr_5rem_1fr_auto]"
           onSubmit={(submit) => {
@@ -170,7 +164,7 @@ export function BrokenItemsSection({
             </Button>
           </div>
         </form>
-      )}
+      ) : null}
 
       <ConfirmDialog
         open={removeId !== null}
