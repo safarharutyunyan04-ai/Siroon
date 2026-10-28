@@ -186,6 +186,21 @@ export function EventDetail({ eventId }: { eventId: string }) {
           {isDone ? t(locale, "reopen") : t(locale, "markDone")}
         </Button>
         <Button
+          type="button"
+          variant="ghost"
+          size="lg"
+          onClick={() => {
+            document
+              .getElementById("broken-items")
+              ?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }}
+        >
+          {t(locale, "brokenItems")}
+          {(event.brokenItems?.length ?? 0) > 0
+            ? ` · ${event.brokenItems.length}`
+            : ""}
+        </Button>
+        <Button
           variant="danger"
           size="sm"
           className="sm:ml-auto"

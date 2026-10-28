@@ -221,6 +221,8 @@ export function EventForm({ event }: EventFormProps) {
           </div>
         </section>
 
+        {event ? <BrokenItemsLive eventId={event.id} locale={locale} /> : null}
+
         <section className="mt-10 sm:mt-12">
           <h2 className="font-display text-xl font-medium sm:text-2xl">
             {t(locale, "menuExtras")}
@@ -340,8 +342,6 @@ export function EventForm({ event }: EventFormProps) {
             </label>
           ) : null}
         </section>
-
-        {event ? <BrokenItemsLive eventId={event.id} locale={locale} /> : null}
       </div>
 
       <aside className="lg:sticky lg:top-32 lg:self-start">

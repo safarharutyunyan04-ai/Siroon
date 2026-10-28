@@ -46,10 +46,15 @@ export function BrokenItemsSection({
   }
 
   return (
-    <section className="panel mt-8 border-accent/25 bg-linear-to-br from-[#faf0f2] via-surface-raised to-white px-5 py-6 sm:mt-10 sm:px-7 sm:py-7">
+    <section
+      id="broken-items"
+      className="panel mt-8 scroll-mt-28 border-2 border-accent/35 bg-linear-to-br from-[#faf0f2] via-surface-raised to-white px-5 py-6 sm:mt-10 sm:px-7 sm:py-7"
+    >
       <div>
-        <p className="label text-accent-deep">{t(locale, "brokenItems")}</p>
-        <p className="mt-1 text-[12px] text-muted">
+        <h2 className="font-display text-xl font-medium tracking-tight text-accent-deep sm:text-2xl">
+          {t(locale, "brokenItems")}
+        </h2>
+        <p className="mt-1.5 text-[13px] text-muted">
           {t(locale, "brokenItemsHint")}
         </p>
       </div>
