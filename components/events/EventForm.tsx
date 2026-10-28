@@ -2,10 +2,11 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { BrokenItemsSection } from "@/components/events/BrokenItemsSection";
 import { Button } from "@/components/ui/Button";
 import { formatMoney, formatPrice, todayIso } from "@/lib/format";
 import { t } from "@/lib/i18n/messages";
-import { useCurrency, useLocale, useMenu } from "@/lib/hooks";
+import { useCurrency, useEvent, useLocale, useMenu } from "@/lib/hooks";
 import { createEvent, updateEvent } from "@/lib/events-store";
 import { getChildCategories, getRootCategories } from "@/lib/menu-store";
 import {
@@ -339,6 +340,8 @@ export function EventForm({ event }: EventFormProps) {
             </label>
           ) : null}
         </section>
+
+        {event ? <BrokenItemsLive eventId={event.id} locale={locale} /> : null}
       </div>
 
       <aside className="lg:sticky lg:top-32 lg:self-start">
@@ -526,6 +529,18 @@ function MenuLine({
       </div>
     </li>
   );
+}
+
+function BrokenItemsLive({
+  eventId,
+  locale,
+}: {
+  eventId: string;
+  locale: Locale;
+}) {
+  const { event } = useEvent(eventId);
+  if (!event) return null;
+  return <BrokenItemsSection event={event} locale={locale} />;
 }
 
 function Field({
