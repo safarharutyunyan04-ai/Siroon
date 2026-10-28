@@ -87,27 +87,6 @@ export function OrderSheetPrint({
 
       <section className="carte-print-section carte-print-order-total">
         <div className="carte-print-ornament" aria-hidden />
-        {quote.rules.length > 0 || quote.discountAmount > 0 ? (
-          <div className="carte-print-order-breakdown">
-            <p>
-              {t(locale, "subtotal")} ·{" "}
-              {formatMoney(quote.subtotal, currency, locale)}
-            </p>
-            {quote.rules.map((rule) => (
-              <p key={rule.id}>
-                {rule.label} · +{formatMoney(rule.amount, currency, locale)}
-              </p>
-            ))}
-            {quote.discountAmount > 0 ? (
-              <p>
-                {quote.discount.kind === "percent"
-                  ? `${t(locale, "discount")} (−${quote.discount.value}%)`
-                  : t(locale, "discount")}{" "}
-                · −{formatMoney(quote.discountAmount, currency, locale)}
-              </p>
-            ) : null}
-          </div>
-        ) : null}
         <p className="carte-print-order-total-label">
           {t(locale, "orderSheetTotal")}
         </p>

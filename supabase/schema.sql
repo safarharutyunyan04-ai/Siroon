@@ -41,9 +41,14 @@ create table if not exists public.venue_events (
   lines jsonb not null default '[]'::jsonb,
   discount jsonb not null default '{"kind":"none","value":0}'::jsonb,
   price_rules jsonb not null default '[]'::jsonb,
+  broken_items jsonb not null default '[]'::jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+-- Migration bases déjà créées :
+alter table public.venue_events
+  add column if not exists broken_items jsonb not null default '[]'::jsonb;
 
 -- ── Réglages (1 ligne) ─────────────────────────────────────────────────────
 create table if not exists public.app_settings (

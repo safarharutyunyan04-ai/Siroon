@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { MenuQrCode } from "@/components/carte/MenuQrCode";
 import { Button } from "@/components/ui/Button";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { IconButton } from "@/components/ui/IconButton";
 import { getCurrency } from "@/lib/currency";
 import { formatPrice } from "@/lib/format";
@@ -278,6 +279,7 @@ function SectionDetail({
 }) {
   const [openItem, setOpenItem] = useState(false);
   const [addingSub, setAddingSub] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const children = getChildCategories(categories, category.id);
   const directItems = items.filter((item) => item.categoryId === category.id);
   const isEmpty =
@@ -288,13 +290,24 @@ function SectionDetail({
 
   return (
     <div className="mt-6 animate-rise pb-28">
-      <button
-        type="button"
-        onClick={onBack}
-        className="inline-flex text-[13px] font-medium text-muted transition-colors hover:text-foreground"
-      >
-        {t(locale, "menuTabMenus")}
-      </button>
+      <Button type="button" variant="ghost" size="sm" onClick={onBack}>
+        <span aria-hidden>←</span>
+        {t(locale, "backToSections")}
+      </Button>
+
+      <ConfirmDialog
+        open={confirmDelete}
+        title={t(locale, "confirmDeleteSection")}
+        description={t(locale, "confirmIrreversible")}
+        confirmLabel={t(locale, "deleteSection")}
+        cancelLabel={t(locale, "cancel")}
+        onCancel={() => setConfirmDelete(false)}
+        onConfirm={() => {
+          setConfirmDelete(false);
+          deleteMenuCategory(category.id);
+          onDeleted();
+        }}
+      />
 
       <section className="panel mt-5 overflow-hidden px-5 py-6 sm:mt-6 sm:px-7 sm:py-8">
         <header>
@@ -309,16 +322,7 @@ function SectionDetail({
             <Button
               size="sm"
               variant="danger"
-              onClick={() => {
-                if (
-                  typeof window !== "undefined" &&
-                  !window.confirm(t(locale, "deleteSection") + " ?")
-                ) {
-                  return;
-                }
-                deleteMenuCategory(category.id);
-                onDeleted();
-              }}
+              onClick={() => setConfirmDelete(true)}
             >
               {t(locale, "deleteSection")}
             </Button>
@@ -421,10 +425,23 @@ function SubsectionBlock({
   locale: Locale;
 }) {
   const [openItem, setOpenItem] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const categoryItems = items.filter((item) => item.categoryId === category.id);
 
   return (
     <div className="rounded-[14px] bg-[linear-gradient(180deg,rgba(255,255,255,0.72),rgba(250,240,242,0.35))] px-4 py-5 ring-1 ring-border/70 sm:px-5 sm:py-6">
+      <ConfirmDialog
+        open={confirmDelete}
+        title={t(locale, "confirmDeleteSubsection")}
+        description={t(locale, "confirmIrreversible")}
+        confirmLabel={t(locale, "deleteSubsection")}
+        cancelLabel={t(locale, "cancel")}
+        onCancel={() => setConfirmDelete(false)}
+        onConfirm={() => {
+          setConfirmDelete(false);
+          deleteMenuCategory(category.id);
+        }}
+      />
       <header>
         <p className="label text-teal">{t(locale, "subsection")}</p>
         <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-2">
@@ -437,15 +454,7 @@ function SubsectionBlock({
           <Button
             size="sm"
             variant="danger"
-            onClick={() => {
-              if (
-                typeof window !== "undefined" &&
-                !window.confirm(t(locale, "deleteSubsection") + " ?")
-              ) {
-                return;
-              }
-              deleteMenuCategory(category.id);
-            }}
+            onClick={() => setConfirmDelete(true)}
           >
             {t(locale, "deleteSubsection")}
           </Button>

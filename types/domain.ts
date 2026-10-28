@@ -58,6 +58,15 @@ export type PriceRule = {
   value: number;
 };
 
+/** Internal damage log — never shown on client print / quote */
+export type BrokenItem = {
+  id: string;
+  label: string;
+  quantity: number;
+  note: string;
+  createdAt: string;
+};
+
 export type VenueEvent = {
   id: string;
   title: string;
@@ -71,6 +80,7 @@ export type VenueEvent = {
   lines: EventLine[];
   discount: EventDiscount;
   priceRules: PriceRule[];
+  brokenItems: BrokenItem[];
   createdAt: string;
   updatedAt: string;
 };

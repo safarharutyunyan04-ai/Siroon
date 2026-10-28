@@ -1,3 +1,4 @@
+import { normalizeBrokenItems } from "@/lib/broken-items";
 import { id } from "@/lib/format";
 import { normalizeDiscount, normalizePriceRules } from "@/lib/pricing";
 import {
@@ -10,6 +11,7 @@ import {
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { waitForSession } from "@/lib/supabase/session";
 import type {
+  BrokenItem,
   EventDiscount,
   EventLine,
   EventStatus,
@@ -17,6 +19,8 @@ import type {
   RoomId,
   VenueEvent,
 } from "@/types/domain";
+
+export { normalizeBrokenItems } from "@/lib/broken-items";
 
 const storageKey = "siroon:events";
 
@@ -41,6 +45,7 @@ export type EventInput = {
   lines: EventLine[];
   discount?: EventDiscount;
   priceRules?: PriceRule[];
+  brokenItems?: BrokenItem[];
   status?: EventStatus;
 };
 
@@ -89,6 +94,7 @@ export function createEvent(input: EventInput) {
     lines: input.lines,
     discount: normalizeDiscount(input.discount),
     priceRules: normalizePriceRules(input.priceRules),
+    brokenItems: normalizeBrokenItems(input.brokenItems),
     createdAt: now,
     updatedAt: now,
   };
@@ -133,6 +139,10 @@ export function updateEvent(
           patch.priceRules !== undefined
             ? normalizePriceRules(patch.priceRules)
             : event.priceRules,
+        brokenItems:
+          patch.brokenItems !== undefined
+            ? normalizeBrokenItems(patch.brokenItems)
+            : event.brokenItems,
         updatedAt: new Date().toISOString(),
       };
       return updated;
@@ -189,6 +199,7 @@ function normalizeEvent(raw: Partial<VenueEvent>): VenueEvent | null {
     lines: Array.isArray(raw.lines) ? raw.lines : [],
     discount: normalizeDiscount(raw.discount),
     priceRules: normalizePriceRules(raw.priceRules),
+    brokenItems: normalizeBrokenItems(raw.brokenItems),
     createdAt:
       typeof raw.createdAt === "string"
         ? raw.createdAt

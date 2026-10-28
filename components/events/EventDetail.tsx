@@ -5,13 +5,16 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { OrderSheetPrint } from "@/components/events/OrderSheetPrint";
 import { Button } from "@/components/ui/Button";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { IconButton } from "@/components/ui/IconButton";
 import { deleteEvent, updateEvent } from "@/lib/events-store";
-import { formatMoney, formatLongDate } from "@/lib/format";
+import { formatMoney, formatLongDate, id } from "@/lib/format";
 import { t } from "@/lib/i18n/messages";
 import { useCurrency, useEvent, useLocale, useMenu } from "@/lib/hooks";
 import { getCategory } from "@/lib/menu-store";
 import { quoteEvent } from "@/lib/pricing";
 import { roomName } from "@/lib/rooms";
+import type { BrokenItem, Locale, VenueEvent } from "@/types/domain";
 
 export function EventDetail({ eventId }: { eventId: string }) {
   const router = useRouter();
@@ -20,6 +23,7 @@ export function EventDetail({ eventId }: { eventId: string }) {
   const { items: menu } = useMenu();
   const { currency } = useCurrency();
   const [justDone, setJustDone] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   if (!ready) {
     return <p className="text-sm text-muted">{t(locale, "loading")}</p>;
@@ -185,20 +189,25 @@ export function EventDetail({ eventId }: { eventId: string }) {
           variant="danger"
           size="sm"
           className="sm:ml-auto"
-          onClick={() => {
-            if (
-              typeof window !== "undefined" &&
-              !window.confirm(t(locale, "deleteEvent") + " ?")
-            ) {
-              return;
-            }
-            deleteEvent(event.id);
-            router.push("/");
-          }}
+          onClick={() => setConfirmDelete(true)}
         >
           {t(locale, "deleteEvent")}
         </Button>
       </div>
+
+      <ConfirmDialog
+        open={confirmDelete}
+        title={t(locale, "confirmDeleteEvent")}
+        description={t(locale, "confirmIrreversible")}
+        confirmLabel={t(locale, "deleteEvent")}
+        cancelLabel={t(locale, "cancel")}
+        onCancel={() => setConfirmDelete(false)}
+        onConfirm={() => {
+          setConfirmDelete(false);
+          deleteEvent(event.id);
+          router.push("/");
+        }}
+      />
 
       <div className="mt-14">
         {[...groups.entries()].map(([categoryId, lines]) => (
@@ -250,6 +259,8 @@ export function EventDetail({ eventId }: { eventId: string }) {
           <p className="mt-3 max-w-xl text-sm leading-relaxed">{event.notes}</p>
         </section>
       ) : null}
+
+      <BrokenItemsSection event={event} locale={locale} />
       </div>
 
       <OrderSheetPrint
@@ -268,7 +279,7 @@ function StatusChip({
   pulse,
 }: {
   done: boolean;
-  locale: Parameters<typeof t>[0];
+  locale: Locale;
   pulse: boolean;
 }) {
   return (
@@ -282,5 +293,145 @@ function StatusChip({
       <span aria-hidden>{done ? "✓" : "●"}</span>
       {done ? t(locale, "statusDone") : t(locale, "statusConfirmed")}
     </span>
+  );
+}
+
+function BrokenItemsSection({
+  event,
+  locale,
+}: {
+  event: VenueEvent;
+  locale: Locale;
+}) {
+  const items = event.brokenItems ?? [];
+  const [label, setLabel] = useState("");
+  const [quantity, setQuantity] = useState("1");
+  const [note, setNote] = useState("");
+  const [removeId, setRemoveId] = useState<string | null>(null);
+
+  function persist(next: BrokenItem[]) {
+    updateEvent(event.id, { brokenItems: next });
+  }
+
+  function addItem() {
+    const trimmed = label.trim();
+    if (!trimmed) return;
+    const qty = Math.max(1, Math.round(Number(quantity) || 1));
+    persist([
+      {
+        id: id("brk"),
+        label: trimmed,
+        quantity: qty,
+        note: note.trim(),
+        createdAt: new Date().toISOString(),
+      },
+      ...items,
+    ]);
+    setLabel("");
+    setQuantity("1");
+    setNote("");
+  }
+
+  return (
+    <section className="mt-10 border-t border-border pt-8">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="label">{t(locale, "brokenItems")}</p>
+          <p className="mt-1 text-[12px] text-muted">
+            {t(locale, "brokenItemsHint")}
+          </p>
+        </div>
+      </div>
+
+      {items.length === 0 ? (
+        <p className="mt-5 text-sm text-muted">{t(locale, "noBrokenItems")}</p>
+      ) : (
+        <ul className="mt-5 flex flex-col">
+          {items.map((item) => (
+            <li
+              key={item.id}
+              className="flex flex-wrap items-start justify-between gap-3 border-t border-border py-3.5 first:border-t-0 first:pt-0"
+            >
+              <div className="min-w-0">
+                <p className="text-sm">
+                  {item.label}
+                  {item.quantity > 1 ? (
+                    <span className="ml-2 tabular-nums text-muted">
+                      ×{item.quantity}
+                    </span>
+                  ) : null}
+                </p>
+                {item.note ? (
+                  <p className="mt-1 text-[12px] text-muted">{item.note}</p>
+                ) : null}
+              </div>
+              <IconButton
+                variant="remove"
+                label={t(locale, "delete")}
+                onClick={() => setRemoveId(item.id)}
+              >
+                ×
+              </IconButton>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <form
+        className="mt-5 grid max-w-2xl gap-3 sm:grid-cols-[1fr_5rem_1fr_auto]"
+        onSubmit={(submit) => {
+          submit.preventDefault();
+          addItem();
+        }}
+      >
+        <label className="flex flex-col gap-1.5">
+          <span className="label">{t(locale, "brokenItemName")}</span>
+          <input
+            value={label}
+            onChange={(change) => setLabel(change.target.value)}
+            required
+            className="border-b border-border bg-transparent py-2 text-sm outline-none focus:border-foreground"
+          />
+        </label>
+        <label className="flex flex-col gap-1.5">
+          <span className="label">{t(locale, "brokenItemQty")}</span>
+          <input
+            type="number"
+            min={1}
+            value={quantity}
+            onChange={(change) => setQuantity(change.target.value)}
+            className="border-b border-border bg-transparent py-2 text-sm tabular-nums outline-none focus:border-foreground"
+          />
+        </label>
+        <label className="flex flex-col gap-1.5">
+          <span className="label">{t(locale, "brokenItemNote")}</span>
+          <input
+            value={note}
+            onChange={(change) => setNote(change.target.value)}
+            className="border-b border-border bg-transparent py-2 text-sm outline-none focus:border-foreground"
+          />
+        </label>
+        <div className="flex items-end">
+          <Button type="submit" size="sm">
+            {t(locale, "addBrokenItem")}
+          </Button>
+        </div>
+      </form>
+
+      <ConfirmDialog
+        open={removeId !== null}
+        title={t(locale, "confirmDeleteBrokenItem")}
+        description={t(locale, "confirmIrreversible")}
+        confirmLabel={t(locale, "delete")}
+        cancelLabel={t(locale, "cancel")}
+        onCancel={() => setRemoveId(null)}
+        onConfirm={() => {
+          if (removeId) {
+            persist(items.filter((item) => item.id !== removeId));
+          }
+          setRemoveId(null);
+        }}
+      />
+    </section>
   );
 }

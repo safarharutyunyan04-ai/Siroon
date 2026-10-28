@@ -1,5 +1,6 @@
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase/client";
 import { createRealtimeChannel } from "@/lib/supabase/realtime";
+import { normalizeBrokenItems } from "@/lib/broken-items";
 import { normalizeDiscount, normalizePriceRules } from "@/lib/pricing";
 import type { VenueEvent } from "@/types/domain";
 
@@ -16,6 +17,7 @@ type EventRow = {
   lines: unknown;
   discount: unknown;
   price_rules: unknown;
+  broken_items?: unknown;
   created_at: string;
   updated_at: string;
 };
@@ -50,6 +52,7 @@ export async function upsertEvent(event: VenueEvent) {
     lines: event.lines,
     discount: event.discount,
     price_rules: event.priceRules,
+    broken_items: event.brokenItems ?? [],
     created_at: event.createdAt,
     updated_at: event.updatedAt,
   });
@@ -115,6 +118,9 @@ function rowToEvent(row: EventRow): VenueEvent | null {
     ),
     priceRules: normalizePriceRules(
       row.price_rules as VenueEvent["priceRules"] | undefined,
+    ),
+    brokenItems: normalizeBrokenItems(
+      row.broken_items as VenueEvent["brokenItems"] | undefined,
     ),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
