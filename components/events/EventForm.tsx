@@ -6,7 +6,7 @@ import { BrokenItemsSection } from "@/components/events/BrokenItemsSection";
 import { Button } from "@/components/ui/Button";
 import { formatMoney, formatPrice, todayIso } from "@/lib/format";
 import { t } from "@/lib/i18n/messages";
-import { useCurrency, useEvent, useLocale, useMenu } from "@/lib/hooks";
+import { useCurrency, useLocale, useMenu } from "@/lib/hooks";
 import { createEvent, updateEvent } from "@/lib/events-store";
 import { getChildCategories, getRootCategories } from "@/lib/menu-store";
 import {
@@ -21,6 +21,7 @@ import type {
   DiscountKind,
   EventDiscount,
   EventLine,
+  BrokenItem,
   Locale,
   MenuItem,
   RoomId,
@@ -47,6 +48,9 @@ export function EventForm({ event }: EventFormProps) {
   );
   const [roomId, setRoomId] = useState<RoomId>(event?.roomId ?? "hall-1");
   const [notes, setNotes] = useState(event?.notes ?? "");
+  const [brokenItems, setBrokenItems] = useState<BrokenItem[]>(
+    () => event?.brokenItems ?? [],
+  );
   const [lines, setLines] = useState<Record<string, number>>(() => {
     const map: Record<string, number> = {};
     for (const line of event?.lines ?? []) {
@@ -126,6 +130,7 @@ export function EventForm({ event }: EventFormProps) {
       lines: selectedLines,
       discount: normalizeDiscount(discount),
       priceRules: [],
+      brokenItems,
       status: "confirmed" as const,
     };
     if (event) {
@@ -221,7 +226,11 @@ export function EventForm({ event }: EventFormProps) {
           </div>
         </section>
 
-        {event ? <BrokenItemsLive eventId={event.id} locale={locale} /> : null}
+        <BrokenItemsSection
+          items={brokenItems}
+          onChange={setBrokenItems}
+          locale={locale}
+        />
 
         <section className="mt-10 sm:mt-12">
           <h2 className="font-display text-xl font-medium sm:text-2xl">
@@ -529,18 +538,6 @@ function MenuLine({
       </div>
     </li>
   );
-}
-
-function BrokenItemsLive({
-  eventId,
-  locale,
-}: {
-  eventId: string;
-  locale: Locale;
-}) {
-  const { event } = useEvent(eventId);
-  if (!event) return null;
-  return <BrokenItemsSection event={event} locale={locale} />;
 }
 
 function Field({

@@ -4,33 +4,30 @@ import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { IconButton } from "@/components/ui/IconButton";
-import { updateEvent } from "@/lib/events-store";
 import { id } from "@/lib/format";
 import { t } from "@/lib/i18n/messages";
-import type { BrokenItem, Locale, VenueEvent } from "@/types/domain";
+import type { BrokenItem, Locale } from "@/types/domain";
 
 export function BrokenItemsSection({
-  event,
+  items,
+  onChange,
   locale,
 }: {
-  event: VenueEvent;
+  items: BrokenItem[];
+  onChange: (items: BrokenItem[]) => void;
   locale: Locale;
 }) {
-  const items = event.brokenItems ?? [];
+  const list = items ?? [];
   const [label, setLabel] = useState("");
   const [quantity, setQuantity] = useState("1");
   const [note, setNote] = useState("");
   const [removeId, setRemoveId] = useState<string | null>(null);
 
-  function persist(next: BrokenItem[]) {
-    updateEvent(event.id, { brokenItems: next });
-  }
-
   function addItem() {
     const trimmed = label.trim();
     if (!trimmed) return;
     const qty = Math.max(1, Math.round(Number(quantity) || 1));
-    persist([
+    onChange([
       {
         id: id("brk"),
         label: trimmed,
@@ -38,7 +35,7 @@ export function BrokenItemsSection({
         note: note.trim(),
         createdAt: new Date().toISOString(),
       },
-      ...items,
+      ...list,
     ]);
     setLabel("");
     setQuantity("1");
@@ -59,11 +56,11 @@ export function BrokenItemsSection({
         </p>
       </div>
 
-      {items.length === 0 ? (
+      {list.length === 0 ? (
         <p className="mt-5 text-sm text-muted">{t(locale, "noBrokenItems")}</p>
       ) : (
         <ul className="mt-5 flex flex-col">
-          {items.map((item) => (
+          {list.map((item) => (
             <li
               key={item.id}
               className="flex flex-wrap items-start justify-between gap-3 border-t border-border py-3.5 first:border-t-0 first:pt-0"
@@ -143,7 +140,7 @@ export function BrokenItemsSection({
         onCancel={() => setRemoveId(null)}
         onConfirm={() => {
           if (removeId) {
-            persist(items.filter((item) => item.id !== removeId));
+            onChange(list.filter((item) => item.id !== removeId));
           }
           setRemoveId(null);
         }}

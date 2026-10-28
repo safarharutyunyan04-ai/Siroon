@@ -224,7 +224,11 @@ export function EventDetail({ eventId }: { eventId: string }) {
         }}
       />
 
-      <BrokenItemsSection event={event} locale={locale} />
+      <BrokenItemsSection
+        items={event.brokenItems ?? []}
+        onChange={(brokenItems) => updateEvent(event.id, { brokenItems })}
+        locale={locale}
+      />
 
       <div className="mt-14">
         {[...groups.entries()].map(([categoryId, lines]) => (
