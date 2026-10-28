@@ -209,6 +209,8 @@ export function EventDetail({ eventId }: { eventId: string }) {
         }}
       />
 
+      <BrokenItemsSection event={event} locale={locale} />
+
       <div className="mt-14">
         {[...groups.entries()].map(([categoryId, lines]) => (
           <section key={categoryId} className="border-t border-border py-8">
@@ -259,8 +261,6 @@ export function EventDetail({ eventId }: { eventId: string }) {
           <p className="mt-3 max-w-xl text-sm leading-relaxed">{event.notes}</p>
         </section>
       ) : null}
-
-      <BrokenItemsSection event={event} locale={locale} />
       </div>
 
       <OrderSheetPrint
@@ -333,7 +333,7 @@ function BrokenItemsSection({
   }
 
   return (
-    <section className="mt-10 border-t border-border pt-8">
+    <section className="panel mt-8 px-5 py-6 sm:mt-10 sm:px-7 sm:py-7">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="label">{t(locale, "brokenItems")}</p>

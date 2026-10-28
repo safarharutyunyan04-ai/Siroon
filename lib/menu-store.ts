@@ -1,4 +1,5 @@
 import { id } from "@/lib/format";
+import { t } from "@/lib/i18n/messages";
 import {
   deleteCategories,
   deleteItem,
@@ -8,6 +9,7 @@ import {
   upsertCategory,
   upsertItem,
 } from "@/lib/remote/menu";
+import { getSettings } from "@/lib/settings-store";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { waitForSession } from "@/lib/supabase/session";
 import { translateToLocales } from "@/lib/translate";
@@ -89,7 +91,12 @@ export function addMenuCategory(name: string, parentId: string | null = null) {
   );
   const category: MenuCategory = {
     id: id("cat"),
-    name: name.trim() || (parentId ? "Sous-section" : "Nouvelle section"),
+    name:
+      name.trim() ||
+      t(
+        getSettings().locale,
+        parentId ? "defaultNewSubsection" : "defaultNewSection",
+      ),
     i18n: {},
     parentId,
     sortOrder: siblings.length,
@@ -207,7 +214,7 @@ export function addMenuItem(input: {
   const item: MenuItem = {
     id: id("item"),
     categoryId: input.categoryId,
-    name: input.name.trim() || "Nouvel aliment",
+    name: input.name.trim() || t(getSettings().locale, "defaultNewItem"),
     description: (input.description ?? "").trim(),
     i18n: input.i18n ?? {},
     price: Math.max(0, Math.round(input.price)),
@@ -404,7 +411,10 @@ function normalizeCategory(
 ): MenuCategory {
   return {
     id: typeof category.id === "string" ? category.id : id("cat"),
-    name: typeof category.name === "string" ? category.name : "Section",
+    name:
+      typeof category.name === "string"
+        ? category.name
+        : t(getSettings().locale, "section"),
     i18n:
       category.i18n && typeof category.i18n === "object" ? category.i18n : {},
     parentId:

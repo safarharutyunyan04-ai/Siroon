@@ -86,7 +86,7 @@ export function MenuQrCode({ className = "" }: { className?: string }) {
       <div class="card">
         <img src="${dataUrl}" alt="QR" />
         <h1>Le Man</h1>
-        <p>Wedding hall</p>
+        <p>${t(locale, "weddingHall")}</p>
       </div>
       <script>window.onload=()=>{setTimeout(()=>window.print(),400);}</script>
       </body></html>`);

@@ -1,6 +1,8 @@
 import { normalizeBrokenItems } from "@/lib/broken-items";
 import { id } from "@/lib/format";
+import { t } from "@/lib/i18n/messages";
 import { normalizeDiscount, normalizePriceRules } from "@/lib/pricing";
+import { getSettings } from "@/lib/settings-store";
 import {
   deleteEventRemote,
   fetchEvents,
@@ -83,7 +85,8 @@ export function createEvent(input: EventInput) {
   const now = new Date().toISOString();
   const event: VenueEvent = {
     id: id("evt"),
-    title: input.title.trim() || "Nouvel événement",
+    title:
+      input.title.trim() || t(getSettings().locale, "defaultNewEvent"),
     contact: input.contact.trim(),
     date: input.date,
     startTime: input.startTime.trim(),
@@ -180,7 +183,10 @@ function normalizeEvent(raw: Partial<VenueEvent>): VenueEvent | null {
   if (!raw || typeof raw.id !== "string") return null;
   return {
     id: raw.id,
-    title: typeof raw.title === "string" ? raw.title : "Événement",
+    title:
+      typeof raw.title === "string"
+        ? raw.title
+        : t(getSettings().locale, "defaultEvent"),
     contact: typeof raw.contact === "string" ? raw.contact : "",
     date: typeof raw.date === "string" ? raw.date : "",
     startTime: typeof raw.startTime === "string" ? raw.startTime : "",

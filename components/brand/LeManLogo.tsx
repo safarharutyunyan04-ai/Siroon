@@ -1,3 +1,8 @@
+"use client";
+
+import { t } from "@/lib/i18n/messages";
+import { useLocale } from "@/lib/hooks";
+
 type LeManLogoProps = {
   size?: "sm" | "md" | "lg" | "hero";
   align?: "left" | "center";
@@ -31,13 +36,15 @@ export function LeManLogo({
   className = "",
   as: Tag = "div",
 }: LeManLogoProps) {
+  const { locale } = useLocale();
+  const hall = t(locale, "weddingHall");
   const styles = sizeStyles[size];
   const alignClass = align === "center" ? "items-center text-center" : "items-start text-left";
 
   return (
     <Tag
       className={`le-man-logo inline-flex flex-col leading-none ${alignClass} ${className}`.trim()}
-      aria-label="Le Man Wedding hall"
+      aria-label={`Le Man ${hall}`}
     >
       <span
         className={`font-[family-name:var(--font-leman)] le-man-logo-title uppercase ${styles.title}`}
@@ -47,7 +54,7 @@ export function LeManLogo({
       <span
         className={`font-[family-name:var(--font-leman-script)] le-man-logo-script ${styles.script}`}
       >
-        Wedding hall
+        {hall}
       </span>
     </Tag>
   );

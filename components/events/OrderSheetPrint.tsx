@@ -41,7 +41,7 @@ export function OrderSheetPrint({
       <header className="carte-print-header">
         <p className="carte-print-eyebrow">{t(locale, "orderSheetEyebrow")}</p>
         <h1 className="carte-print-brand">Le Man</h1>
-        <p className="carte-print-script">Wedding hall</p>
+        <p className="carte-print-script">{t(locale, "weddingHall")}</p>
         <div className="carte-print-ornament" aria-hidden />
         <p className="carte-print-lead">{t(locale, "guestMenuLead")}</p>
       </header>
@@ -110,7 +110,7 @@ export function OrderSheetPrint({
       <footer className="carte-print-footer">
         <div className="carte-print-ornament" aria-hidden />
         <p className="carte-print-brand-sm">Le Man</p>
-        <p className="carte-print-script-sm">Wedding hall</p>
+        <p className="carte-print-script-sm">{t(locale, "weddingHall")}</p>
         <p className="carte-print-thanks">{t(locale, "guestMenuFooter")}</p>
       </footer>
     </div>
