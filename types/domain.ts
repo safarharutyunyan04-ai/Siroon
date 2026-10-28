@@ -58,10 +58,22 @@ export type PriceRule = {
   value: number;
 };
 
-/** Internal damage log — never shown on client print / quote */
+/** Catalog of breakable objects (managed in Menu → Objets) */
+export type BrokenCatalogItem = {
+  id: string;
+  name: string;
+  price: number;
+  active: boolean;
+  createdAt: string;
+};
+
+/** Internal damage log on an event — never shown on client print / quote */
 export type BrokenItem = {
   id: string;
+  /** Optional link to catalog; label + unitPrice are snapshotted at add time */
+  catalogId?: string;
   label: string;
+  unitPrice: number;
   quantity: number;
   note: string;
   createdAt: string;

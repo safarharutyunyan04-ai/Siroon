@@ -7,6 +7,7 @@ import { BrokenItemsSection } from "@/components/events/BrokenItemsSection";
 import { OrderSheetPrint } from "@/components/events/OrderSheetPrint";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { brokenItemsTotal } from "@/lib/broken-items";
 import { deleteEvent, updateEvent } from "@/lib/events-store";
 import { formatMoney, formatLongDate } from "@/lib/format";
 import { t } from "@/lib/i18n/messages";
@@ -41,6 +42,7 @@ export function EventDetail({ eventId }: { eventId: string }) {
   }
 
   const quote = quoteEvent(event, menu, currency, locale);
+  const brokenTotal = brokenItemsTotal(event.brokenItems);
   const groups = new Map<string, typeof quote.lines>();
   for (const line of quote.lines) {
     const list = groups.get(line.categoryId) ?? [];
@@ -135,6 +137,14 @@ export function EventDetail({ eventId }: { eventId: string }) {
               </span>
             ) : null}
           </p>
+          {brokenTotal > 0 ? (
+            <p className="mt-2 text-sm text-muted">
+              {t(locale, "brokenItemsTotal")} ·{" "}
+              <span className="tabular-nums text-accent-deep">
+                {formatMoney(brokenTotal, currency, locale)}
+              </span>
+            </p>
+          ) : null}
           {quote.subtotal !== quote.total ||
           quote.rules.length > 0 ||
           quote.discountAmount > 0 ? (

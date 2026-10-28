@@ -21,6 +21,14 @@ import {
   subscribeMenu,
 } from "@/lib/menu-store";
 import {
+  ensureBrokenCatalog,
+  getBrokenCatalog,
+  getBrokenCatalogReady,
+  getServerBrokenCatalog,
+  getServerBrokenCatalogReady,
+  subscribeBrokenCatalog,
+} from "@/lib/broken-catalog-store";
+import {
   ensureSettings,
   getServerSettings,
   getServerSettingsReady,
@@ -95,6 +103,25 @@ export function useTodayEvents() {
     ready,
     today,
   };
+}
+
+export function useBrokenCatalog() {
+  const items = useSyncExternalStore(
+    subscribeBrokenCatalog,
+    getBrokenCatalog,
+    getServerBrokenCatalog,
+  );
+  const ready = useSyncExternalStore(
+    subscribeBrokenCatalog,
+    getBrokenCatalogReady,
+    getServerBrokenCatalogReady,
+  );
+
+  useEffect(() => {
+    ensureBrokenCatalog();
+  }, []);
+
+  return { items, ready };
 }
 
 export function useCurrency() {

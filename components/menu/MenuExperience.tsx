@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { MenuQrCode } from "@/components/carte/MenuQrCode";
+import { BrokenCatalogPanel } from "@/components/menu/BrokenCatalogPanel";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { IconButton } from "@/components/ui/IconButton";
@@ -34,7 +35,7 @@ import type {
   RoomId,
 } from "@/types/domain";
 
-type MenuTab = "menus" | "qr";
+type MenuTab = "menus" | "objects" | "qr";
 
 function sectionItems(
   categoryId: string,
@@ -87,6 +88,20 @@ export function MenuExperience() {
           >
             {t(locale, "menuTabCarte")}
           </Link>
+          <button
+            type="button"
+            onClick={() => {
+              setTab("objects");
+              setSectionId(null);
+            }}
+            className={`shrink-0 rounded-[10px] px-3 py-2 text-[12px] font-medium transition-all duration-[var(--duration)] ${
+              tab === "objects"
+                ? "bg-accent text-ink"
+                : "text-muted hover:bg-teal-soft hover:text-foreground"
+            }`}
+          >
+            {t(locale, "menuTabObjects")}
+          </button>
           <button
             type="button"
             onClick={() => setTab("qr")}
@@ -255,6 +270,7 @@ export function MenuExperience() {
         )
       ) : null}
 
+      {tab === "objects" ? <BrokenCatalogPanel /> : null}
       {tab === "qr" ? <MenuQrCode className="mt-6" /> : null}
     </div>
   );

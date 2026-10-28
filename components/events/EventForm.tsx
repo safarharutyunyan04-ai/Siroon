@@ -130,11 +130,10 @@ export function EventForm({ event }: EventFormProps) {
       lines: selectedLines,
       discount: normalizeDiscount(discount),
       priceRules: [],
-      brokenItems,
       status: "confirmed" as const,
     };
     if (event) {
-      updateEvent(event.id, payload);
+      updateEvent(event.id, { ...payload, brokenItems });
       router.push(`/events/${event.id}`);
       return;
     }
@@ -226,11 +225,13 @@ export function EventForm({ event }: EventFormProps) {
           </div>
         </section>
 
-        <BrokenItemsSection
-          items={brokenItems}
-          onChange={setBrokenItems}
-          locale={locale}
-        />
+        {event ? (
+          <BrokenItemsSection
+            items={brokenItems}
+            onChange={setBrokenItems}
+            locale={locale}
+          />
+        ) : null}
 
         <section className="mt-10 sm:mt-12">
           <h2 className="font-display text-xl font-medium sm:text-2xl">

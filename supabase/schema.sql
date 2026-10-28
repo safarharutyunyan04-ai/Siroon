@@ -50,6 +50,15 @@ create table if not exists public.venue_events (
 alter table public.venue_events
   add column if not exists broken_items jsonb not null default '[]'::jsonb;
 
+-- ── Catalogue objets cassés ────────────────────────────────────────────────
+create table if not exists public.broken_catalog (
+  id text primary key,
+  name text not null,
+  price numeric not null default 0,
+  active boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
 -- ── Réglages (1 ligne) ─────────────────────────────────────────────────────
 create table if not exists public.app_settings (
   id text primary key default 'default',
@@ -65,6 +74,7 @@ on conflict (id) do nothing;
 -- ── RLS ────────────────────────────────────────────────────────────────────
 alter table public.menu_categories enable row level security;
 alter table public.menu_items enable row level security;
+alter table public.broken_catalog enable row level security;
 alter table public.venue_events enable row level security;
 alter table public.app_settings enable row level security;
 
@@ -86,6 +96,16 @@ create policy "menu_items_select" on public.menu_items for select to anon, authe
 create policy "menu_items_write" on public.menu_items for insert to authenticated with check (true);
 create policy "menu_items_update" on public.menu_items for update to authenticated using (true) with check (true);
 create policy "menu_items_delete" on public.menu_items for delete to authenticated using (true);
+
+-- Catalogue objets cassés : équipe seulement
+drop policy if exists "broken_catalog_select" on public.broken_catalog;
+drop policy if exists "broken_catalog_write" on public.broken_catalog;
+drop policy if exists "broken_catalog_update" on public.broken_catalog;
+drop policy if exists "broken_catalog_delete" on public.broken_catalog;
+create policy "broken_catalog_select" on public.broken_catalog for select to authenticated using (true);
+create policy "broken_catalog_write" on public.broken_catalog for insert to authenticated with check (true);
+create policy "broken_catalog_update" on public.broken_catalog for update to authenticated using (true) with check (true);
+create policy "broken_catalog_delete" on public.broken_catalog for delete to authenticated using (true);
 
 -- Events / settings : équipe seulement
 drop policy if exists "venue_events_select" on public.venue_events;
@@ -124,6 +144,12 @@ begin
     where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'venue_events'
   ) then
     alter publication supabase_realtime add table public.venue_events;
+  end if;
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'broken_catalog'
+  ) then
+    alter publication supabase_realtime add table public.broken_catalog;
   end if;
   if not exists (
     select 1 from pg_publication_tables
